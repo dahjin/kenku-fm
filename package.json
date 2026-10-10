@@ -9,7 +9,19 @@
     "package": "env-cmd electron-forge package",
     "make": "env-cmd electron-forge make",
     "publish": "env-cmd electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "test:playlist-tags": "tsc --module commonjs --target es2020 --esModuleInterop --skipLibCheck --outDir dist/playlist-tags-tests tests/playlistTags.test.ts && node --test dist/playlist-tags-tests/tests/playlistTags.test.js",
+    "test:playlist-quick-play": "tsc --module commonjs --target es2020 --esModuleInterop --skipLibCheck --outDir dist/playlist-quick-play-tests tests/playlistQuickPlay.test.ts && node --test dist/playlist-quick-play-tests/tests/playlistQuickPlay.test.js",
+    "test:linux-display": "tsc --module commonjs --target es2020 --esModuleInterop --skipLibCheck --outDir dist/linux-display-tests tests/linuxDisplay.test.ts && node --test dist/linux-display-tests/tests/linuxDisplay.test.js && node tests/linuxLauncher.test.cjs",
+    "test:sound-repeat": "tsc --module commonjs --target es2020 --esModuleInterop --skipLibCheck --outDir dist/sound-repeat-tests tests/soundRepeat.test.ts && node --test dist/sound-repeat-tests/tests/soundRepeat.test.js",
+    "test:playlist-crossfade": "tsc --module commonjs --target es2020 --esModuleInterop --skipLibCheck --outDir dist/playlist-crossfade-tests tests/playlistCrossfade.test.ts && node --test dist/playlist-crossfade-tests/tests/playlistCrossfade.test.js",
+    "test:sound-groups": "tsc --module commonjs --target es2020 --esModuleInterop --skipLibCheck --outDir dist/sound-groups-tests tests/soundGroups.test.ts && node --test dist/sound-groups-tests/tests/soundGroups.test.js",
+    "test:scenes": "tsc --module commonjs --target es2020 --esModuleInterop --skipLibCheck --outDir dist/scenes-tests tests/scenes.test.ts && node --test dist/scenes-tests/tests/scenes.test.js",
+    "test:smart-shuffle": "tsc --module commonjs --target es2020 --esModuleInterop --skipLibCheck --outDir dist/smart-shuffle-tests tests/smartShuffle.test.ts && node --test dist/smart-shuffle-tests/tests/smartShuffle.test.js",
+    "test:audio-file-drop": "tsc --module commonjs --target es2020 --jsx react --esModuleInterop --skipLibCheck --outDir dist/audio-file-drop-tests tests/audioFileDrop.test.ts src/player/preload.ts && node --test dist/audio-file-drop-tests/tests/audioFileDrop.test.js",
+    "test:audio-drop": "tsc --module commonjs --target es2020 --esModuleInterop --skipLibCheck --outDir dist/audio-drop-tests tests/audioDrop.test.ts src/player/preload.ts && node dist/audio-drop-tests/tests/audioDrop.test.js",
+    "test:upload-interaction": "node tests/buildUpload.cjs && env -u ELECTRON_RUN_AS_NODE electron tests/uploadInteraction.cjs",
+    "test:features": "yarn test:playlist-tags && yarn test:playlist-quick-play && yarn test:linux-display && yarn test:sound-repeat && yarn test:playlist-crossfade && yarn test:sound-groups && yarn test:scenes && yarn test:smart-shuffle && yarn test:audio-file-drop && yarn test:audio-drop"
   },
   "keywords": [],
   "author": {

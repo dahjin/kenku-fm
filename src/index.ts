@@ -14,9 +14,22 @@ import { getMalformedUserAgent, getUserAgent } from "./main/userAgent";
 import { SessionManager } from "./main/managers/SessionManager";
 import { runAutoUpdate } from "./autoUpdate";
 import { getSavedBounds, saveWindowBounds } from "./bounds";
+import { shouldUseWayland } from "./main/linuxDisplay";
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
+
+// Match native Wayland file managers so the compositor can deliver file drops
+// without crossing the Wayland/XWayland data-transfer bridge.
+if (
+  shouldUseWayland(
+    process.platform,
+    process.env,
+    app.commandLine.hasSwitch("ozone-platform"),
+  )
+) {
+  app.commandLine.appendSwitch("ozone-platform", "wayland");
+}
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 let window: BrowserWindow | null = null;

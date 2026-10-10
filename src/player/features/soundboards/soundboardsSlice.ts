@@ -1,6 +1,9 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
+import { RepeatInterval, validRepeatInterval } from "./repeatInterval";
+
 export interface Sound {
+  repeatInterval?: RepeatInterval | null;
   id: string;
   url: string;
   title: string;
@@ -10,7 +13,15 @@ export interface Sound {
   fadeOut: number;
 }
 
+export interface SoundGroup {
+  id: string;
+  title: string;
+  soundIds: string[];
+  interval: RepeatInterval;
+}
+
 export interface Soundboard {
+  groups?: SoundGroup[];
   sounds: string[];
   background: string;
   title: string;
@@ -42,12 +53,12 @@ export const soundboardsSlice = createSlice({
       state.soundboards.allIds.push(action.payload.id);
     },
     removeSoundboard: (state, action: PayloadAction<string>) => {
-      for (let sound of state.soundboards.byId[action.payload].sounds) {
+      for (const sound of state.soundboards.byId[action.payload].sounds) {
         delete state.sounds[sound];
       }
       delete state.soundboards.byId[action.payload];
       state.soundboards.allIds = state.soundboards.allIds.filter(
-        (id) => id !== action.payload
+        (id) => id !== action.payload,
       );
     },
     editSoundboard: (state, action: PayloadAction<Partial<Soundboard>>) => {
@@ -61,7 +72,7 @@ export const soundboardsSlice = createSlice({
     },
     addSound: (
       state,
-      action: PayloadAction<{ sound: Sound; soundboardId: string }>
+      action: PayloadAction<{ sound: Sound; soundboardId: string }>,
     ) => {
       const { sound, soundboardId } = action.payload;
       state.soundboards.byId[soundboardId].sounds.unshift(sound.id);
@@ -69,19 +80,19 @@ export const soundboardsSlice = createSlice({
     },
     addSounds: (
       state,
-      action: PayloadAction<{ sounds: Sound[]; soundboardId: string }>
+      action: PayloadAction<{ sounds: Sound[]; soundboardId: string }>,
     ) => {
       const { sounds, soundboardId } = action.payload;
       state.soundboards.byId[soundboardId].sounds.unshift(
-        ...sounds.map((sound) => sound.id)
+        ...sounds.map((sound) => sound.id),
       );
-      for (let sound of sounds) {
+      for (const sound of sounds) {
         state.sounds[sound.id] = sound;
       }
     },
     removeSound: (
       state,
-      action: PayloadAction<{ soundId: string; soundboardId: string }>
+      action: PayloadAction<{ soundId: string; soundboardId: string }>,
     ) => {
       const { soundId, soundboardId } = action.payload;
       state.soundboards.byId[soundboardId].sounds = state.soundboards.byId[
@@ -97,10 +108,16 @@ export const soundboardsSlice = createSlice({
         ...state.sounds[action.payload.id],
         ...action.payload,
       };
+      const sound = state.sounds[action.payload.id];
+      if (action.payload.loop) sound.repeatInterval = null;
+      if (sound.repeatInterval) {
+        if (validRepeatInterval(sound.repeatInterval)) sound.loop = false;
+        else sound.repeatInterval = null;
+      }
     },
     moveSoundboard: (
       state,
-      action: PayloadAction<{ active: string; over: string }>
+      action: PayloadAction<{ active: string; over: string }>,
     ) => {
       const oldIndex = state.soundboards.allIds.indexOf(action.payload.active);
       const newIndex = state.soundboards.allIds.indexOf(action.payload.over);
@@ -113,7 +130,7 @@ export const soundboardsSlice = createSlice({
         soundboardId: string;
         active: string;
         over: string;
-      }>
+      }>,
     ) => {
       const soundboard = state.soundboards.byId[action.payload.soundboardId];
       const oldIndex = soundboard.sounds.indexOf(action.payload.active);

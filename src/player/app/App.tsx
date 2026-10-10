@@ -6,6 +6,8 @@ import Alert from "@mui/material/Alert";
 
 import { Routes, Route } from "react-router-dom";
 
+import { Scenes } from "../features/scenes/Scenes";
+import { useScenePlayback } from "../features/scenes/useScenePlayback";
 import { Player } from "../features/player/Player";
 import { usePlaylistPlayback } from "../features/playlists/usePlaylistPlayback";
 import { PlaylistMediaSession } from "../features/playlists/PlaylistMediaSession";
@@ -42,15 +44,21 @@ export function App() {
 
   const playlist = usePlaylistPlayback(handleError);
   const soundboard = useSoundboardPlayback(handleError);
+  useScenePlayback(playlist, soundboard);
 
   return (
     <>
       <WallPaper />
       <Routes>
+        <Route path="scenes" element={<Scenes />} />
         <Route
           path="/"
           element={
-            <Home onPlayTrack={playlist.play} onPlaySound={soundboard.play} />
+            <Home
+              onPlayTrack={playlist.play}
+              onPlaySound={soundboard.play}
+              onStopSound={soundboard.stop}
+            />
           }
         />
         <Route

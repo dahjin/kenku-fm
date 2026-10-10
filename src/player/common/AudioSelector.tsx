@@ -16,6 +16,8 @@ type AudioSelectorProps = {
   value: string;
   onChange: (value: string) => void;
   onFileName: (name: string) => void;
+  multiple?: boolean;
+  onFiles?: (files: FileInfo[]) => void;
 };
 
 const formats = ["mp3", "flac", "wav", "ogg", "mp4", "3gp", "webm", "mpeg"];
@@ -24,6 +26,8 @@ export function AudioSelector({
   value,
   onChange,
   onFileName,
+  multiple = false,
+  onFiles,
 }: AudioSelectorProps) {
   function handleURLChange(event: React.ChangeEvent<HTMLInputElement>) {
     onChange(event.target.value);
@@ -37,18 +41,22 @@ export function AudioSelector({
     }
   }
 
-  const onDrop = useCallback((acceptedFiles: FileInfo[]) => {
-    const file = acceptedFiles[0];
-    if (file) {
-      onChange(encodeFilePath(file.path));
-      onFileName(cleanFileName(file.name));
-    }
-  }, []);
+  const onDrop = useCallback(
+    (acceptedFiles: FileInfo[]) => {
+      const file = acceptedFiles[0];
+      if (file) {
+        onChange(encodeFilePath(file.path));
+        onFileName(cleanFileName(file.name));
+      }
+      onFiles?.(acceptedFiles);
+    },
+    [onChange, onFileName, onFiles],
+  );
 
   const { rootProps, inputProps, isDragging } = useFileDrop({
     onDrop,
     accept: "audio/*",
-    multiple: false,
+    multiple,
   });
 
   const warning =
@@ -100,10 +108,13 @@ export function AudioSelector({
       >
         <input {...inputProps} />
         {isDragging ? (
-          <Typography variant="caption">Drop the track here...</Typography>
+          <Typography variant="caption">
+            Drop {multiple ? "the tracks" : "the track"} here...
+          </Typography>
         ) : (
           <Typography variant="caption">
-            Drag and drop or click to select a track
+            Drag and drop or click to select{" "}
+            {multiple ? "one or more tracks" : "a track"}
           </Typography>
         )}
       </Button>

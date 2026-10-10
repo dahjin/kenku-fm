@@ -1,13 +1,17 @@
 import { Howl } from "howler";
+import { RepeatInterval, RepeatTimer } from "./repeatInterval";
 import { TypedEmitter } from "tiny-typed-emitter";
 
 export interface SoundEvents {
   error: () => void;
   load: (duration: number) => void;
   end: () => void;
+  waiting: () => void;
+  playing: () => void;
 }
 
 type SoundOptions = {
+  repeatInterval?: RepeatInterval | null;
   src: string;
   volume: number;
   loop: boolean;
@@ -23,6 +27,9 @@ type SoundOptions = {
  */
 export class Sound extends TypedEmitter<SoundEvents> {
   options: SoundOptions;
+  private repeatTimer = new RepeatTimer();
+  private stopped = false;
+  private waiting = false;
   /** Timeout that controls the cross-fade */
   _timeout: NodeJS.Timeout;
   /** Current howl audio playabck for this loop */
@@ -30,7 +37,10 @@ export class Sound extends TypedEmitter<SoundEvents> {
 
   constructor(options: SoundOptions) {
     super();
-    this.options = options;
+    this.options = {
+      ...options,
+      loop: options.repeatInterval ? false : options.loop,
+    };
     try {
       const createHowlerInstance = () => {
         const crossFade =
@@ -48,19 +58,22 @@ export class Sound extends TypedEmitter<SoundEvents> {
           // Fade in
           howl.fade(0, this.options.volume, options.fadeIn);
           // Fade out
-          this._timeout = setTimeout(() => {
-            if (this.options.loop) {
-              // Cross fade on loop
-              howl.once("fade", () => {
-                howl.stop();
-              });
-              howl.fade(howl.volume(), 0, this.options.fadeOut);
-              createHowlerInstance();
-            } else {
-              // Basic fade out when not looping
-              howl.fade(howl.volume(), 0, this.options.fadeOut);
-            }
-          }, Math.floor(howl.duration() * 1000) - this.options.fadeOut);
+          this._timeout = setTimeout(
+            () => {
+              if (this.options.loop) {
+                // Cross fade on loop
+                howl.once("fade", () => {
+                  howl.stop();
+                });
+                howl.fade(howl.volume(), 0, this.options.fadeOut);
+                createHowlerInstance();
+              } else {
+                // Basic fade out when not looping
+                howl.fade(howl.volume(), 0, this.options.fadeOut);
+              }
+            },
+            Math.floor(howl.duration() * 1000) - this.options.fadeOut,
+          );
         };
 
         const handleLoad = () => {
@@ -68,24 +81,33 @@ export class Sound extends TypedEmitter<SoundEvents> {
         };
 
         const handleEnd = () => {
-          if (!this.options.loop) {
+          if (this.stopped) return;
+          if (this.options.repeatInterval) {
+            this.scheduleRepeat();
+          } else if (!this.options.loop) {
             this.emit("end");
           }
         };
 
         const handleError = () => {
+          this.repeatTimer.cancel();
           this.emit("error");
         };
 
         if (crossFade) {
           howl.on("play", handleCrossFade);
         }
+        howl.on("play", () => {
+          this.waiting = false;
+          this.emit("playing");
+        });
         howl.on("load", handleLoad);
         howl.on("end", handleEnd);
         howl.on("loaderror", handleError);
         howl.on("playerror", handleError);
 
-        const howlSound = (howl as any)._sounds[0];
+        const howlSound = (howl as unknown as { _sounds?: readonly unknown[] })
+          ._sounds?.[0];
         if (!howlSound) {
           handleError();
         }
@@ -98,10 +120,42 @@ export class Sound extends TypedEmitter<SoundEvents> {
     }
   }
 
+  private scheduleRepeat() {
+    if (this.stopped || !this.options.repeatInterval) return;
+    this.waiting = true;
+    this.repeatTimer.start(this.options.repeatInterval, () => {
+      if (!this.stopped) this._howl.play();
+    });
+    this.emit("waiting");
+  }
+
+  repeat(interval: RepeatInterval | null | undefined) {
+    const previous = this.options.repeatInterval;
+    if (
+      previous?.minSeconds === interval?.minSeconds &&
+      previous?.maxSeconds === interval?.maxSeconds
+    )
+      return;
+    this.options.repeatInterval = interval;
+    if (interval) this.loop(false);
+    if (this.waiting) {
+      this.repeatTimer.cancel();
+      if (interval) this.scheduleRepeat();
+      else if (this.options.loop) this._howl.play();
+      else this.emit("end");
+    }
+  }
+
   async stop(fadeOut: boolean): Promise<void> {
+    this.stopped = true;
+    this.repeatTimer.cancel();
     return new Promise((resolve) => {
       clearTimeout(this._timeout);
-      if (fadeOut) {
+      if (!this._howl) {
+        resolve();
+        return;
+      }
+      if (fadeOut && this._howl.playing() && this.options.fadeOut > 0) {
         this._howl.once("fade", () => {
           this._howl.unload();
           resolve();
@@ -134,7 +188,7 @@ export class Sound extends TypedEmitter<SoundEvents> {
   loop(loop: boolean) {
     this.options.loop = loop;
     // Toggle howl loop if cross fade is disabled
-    if (this.options.fadeIn === 0 && this.options.fadeOut === 0) {
+    if (this.options.fadeIn === 0 || this.options.fadeOut === 0) {
       this._howl.loop(loop);
     }
   }

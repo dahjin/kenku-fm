@@ -14,21 +14,32 @@ type SoundboardPlaybackSyncProps = {
 export function SoundboardPlaybackSync({
   onSync,
 }: SoundboardPlaybackSyncProps) {
+  const active = useSelector((state: RootState) => state.scenePlayback.active);
   const soundboards = useSelector((state: RootState) => state.soundboards);
 
   useEffect(() => {
     onSync((id, sound) => {
-      const state = soundboards.sounds[id];
+      const source = soundboards.sounds[id];
+      const preset = active?.tab.sounds.find((item) => item.soundId === id);
+      const state =
+        source && preset
+          ? {
+              ...source,
+              volume: preset.volume,
+              loop: true,
+              repeatInterval: null,
+            }
+          : source;
       if (state) {
         if (state.volume !== sound.options.volume) {
           sound.volume(state.volume);
         }
-        if (state.loop !== sound.options.loop) {
-          sound.loop(state.loop);
-        }
+        const loop = state.repeatInterval ? false : state.loop;
+        if (loop !== sound.options.loop) sound.loop(loop);
+        sound.repeat(state.repeatInterval);
       }
     });
-  }, [soundboards]);
+  }, [soundboards, active, onSync]);
 
   return <></>;
 }

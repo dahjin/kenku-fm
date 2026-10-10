@@ -20,6 +20,8 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
+import { SceneItem } from "../scenes/SceneItem";
+import { SceneAdd } from "../scenes/SceneAdd";
 import { RootState } from "../../app/store";
 import { PlaylistAdd } from "../playlists/PlaylistAdd";
 import { PlaylistItem } from "../playlists/PlaylistItem";
@@ -41,10 +43,12 @@ const SoundboardsLink = React.forwardRef<
 type HomeProps = {
   onPlayTrack: (track: Track) => void;
   onPlaySound: (sound: Sound) => void;
+  onStopSound: (id: string) => void;
 };
 
-export function Home({ onPlayTrack, onPlaySound }: HomeProps) {
+export function Home({ onPlayTrack, onPlaySound, onStopSound }: HomeProps) {
   const navigate = useNavigate();
+  const scenes = useSelector((state: RootState) => state.scenes);
   const playlists = useSelector((state: RootState) => state.playlists);
   const soundboards = useSelector((state: RootState) => state.soundboards);
 
@@ -52,12 +56,16 @@ export function Home({ onPlayTrack, onPlaySound }: HomeProps) {
   const isSmall = useMediaQuery(theme.breakpoints.down("lg"));
 
   const playlistItems = playlists.playlists.allIds
-    .slice(0, isSmall ? 4 : 8)
+    .slice(0, isSmall ? 4 : 6)
     .map((id) => playlists.playlists.byId[id]);
   const soundboardItems = soundboards.soundboards.allIds
-    .slice(0, isSmall ? 4 : 8)
+    .slice(0, isSmall ? 4 : 6)
     .map((id) => soundboards.soundboards.byId[id]);
 
+  const sceneItems = scenes.allIds
+    .slice(0, isSmall ? 4 : 6)
+    .map((id) => scenes.byId[id]);
+  const [sceneAddOpen, setSceneAddOpen] = useState(false);
   const [playlistAddOpen, setPlaylistAddOpen] = useState(false);
   const [soundboardAddOpen, setSoundboardAddOpen] = useState(false);
 
@@ -71,6 +79,61 @@ export function Home({ onPlayTrack, onPlaySound }: HomeProps) {
         mb: "248px",
       }}
     >
+      <Box>
+        <Typography variant="h4" component="h1">
+          Library
+        </Typography>
+        <Typography color="text.secondary" variant="body2">
+          Activate a scene, choose music by tags, or play a sound.
+        </Typography>
+      </Box>
+      <Card>
+        <CardContent>
+          <Stack gap={1} alignItems="center" direction="row">
+            <Typography variant="h5" component="div">
+              Scenes
+            </Typography>
+            <Tooltip title="Add Scene">
+              <IconButton
+                aria-label="Add Scene"
+                onClick={() => setSceneAddOpen(true)}
+              >
+                <AddIcon />
+              </IconButton>
+            </Tooltip>
+            <Box sx={{ flexGrow: 1 }} />
+            <Link
+              component={RouterLink}
+              to="/scenes"
+              color="inherit"
+              underline="hover"
+            >
+              See All
+            </Link>
+          </Stack>
+        </CardContent>
+        <CardContent>
+          {sceneItems.length ? (
+            <Grid container spacing={2}>
+              {sceneItems.map((scene) => (
+                <Grid xs={12} sm={6} md={4} item key={scene.id}>
+                  <SceneItem
+                    scene={scene}
+                    onSelect={(id) =>
+                      navigate(`/scenes?scene=${encodeURIComponent(id)}`)
+                    }
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Typography color="text.secondary">
+              Create a scene with Day, Night and Tension tabs, then activate
+              them here.
+            </Typography>
+          )}
+        </CardContent>
+      </Card>
       <Card>
         <CardContent>
           <Stack
@@ -83,7 +146,10 @@ export function Home({ onPlayTrack, onPlaySound }: HomeProps) {
               Playlists
             </Typography>
             <Tooltip title="Add Playlist">
-              <IconButton onClick={() => setPlaylistAddOpen(true)}>
+              <IconButton
+                aria-label="Add playlist"
+                onClick={() => setPlaylistAddOpen(true)}
+              >
                 <AddIcon />
               </IconButton>
             </Tooltip>
@@ -95,9 +161,18 @@ export function Home({ onPlayTrack, onPlaySound }: HomeProps) {
         </CardContent>
         <CardContent>
           <Grid container spacing={2}>
+            {!playlistItems.length && (
+              <Grid item xs={12}>
+                <Typography variant="body2" color="text.secondary">
+                  Your music lives here. Add a playlist, then tag its tracks to
+                  build a mix.
+                </Typography>
+              </Grid>
+            )}
             {playlistItems.map((playlist) => (
-              <Grid xs={6} sm={4} md={3} item key={playlist.id}>
+              <Grid xs={12} sm={6} md={4} item key={playlist.id}>
                 <PlaylistItem
+                  quickControls
                   playlist={playlist}
                   onSelect={(id) => navigate(`/playlists/${id}`)}
                   onPlay={onPlayTrack}
@@ -119,7 +194,10 @@ export function Home({ onPlayTrack, onPlaySound }: HomeProps) {
               Soundboards
             </Typography>
             <Tooltip title="Add Soundboard">
-              <IconButton onClick={() => setSoundboardAddOpen(true)}>
+              <IconButton
+                aria-label="Add soundboard"
+                onClick={() => setSoundboardAddOpen(true)}
+              >
                 <AddIcon />
               </IconButton>
             </Tooltip>
@@ -131,9 +209,19 @@ export function Home({ onPlayTrack, onPlaySound }: HomeProps) {
         </CardContent>
         <CardContent>
           <Grid container spacing={2}>
+            {!soundboardItems.length && (
+              <Grid item xs={12}>
+                <Typography variant="body2" color="text.secondary">
+                  Add a soundboard for ambience, one-shot effects and random
+                  sound groups.
+                </Typography>
+              </Grid>
+            )}
             {soundboardItems.map((soundboard) => (
-              <Grid xs={6} sm={4} md={3} item key={soundboard.id}>
+              <Grid xs={12} sm={6} md={4} item key={soundboard.id}>
                 <SoundboardItem
+                  quickControls
+                  onStop={onStopSound}
                   soundboard={soundboard}
                   onSelect={(id) => navigate(`/soundboards/${id}`)}
                   onPlay={onPlaySound}
@@ -143,6 +231,7 @@ export function Home({ onPlayTrack, onPlaySound }: HomeProps) {
           </Grid>
         </CardContent>
       </Card>
+      {sceneAddOpen && <SceneAdd onClose={() => setSceneAddOpen(false)} />}
       <PlaylistAdd
         open={playlistAddOpen}
         onClose={() => setPlaylistAddOpen(false)}

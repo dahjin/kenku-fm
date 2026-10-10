@@ -126,7 +126,7 @@ function Controls({
     (state: RootState) => state.playlistPlayback.shuffle,
   );
   const disabled = useSelector(
-    (state: RootState) => !Boolean(state.playlistPlayback.playback),
+    (state: RootState) => !state.playlistPlayback.playback,
   );
   const playing = useSelector(
     (state: RootState) => state.playlistPlayback.playing,
@@ -264,7 +264,12 @@ function Time({ onPlaylistSeek }: Pick<PlaylistPlayerProps, "onPlaylistSeek">) {
     (state: RootState) => state.playlistPlayback.playback,
   );
 
+  const start = useSelector(
+    (state: RootState) => state.playlistPlayback.track?.startSeconds ?? 0,
+  );
+
   function formatDuration(value: number) {
+    value = Math.floor(value);
     const minute = Math.floor(value / 60);
     const secondLeft = value - minute * 60;
     return `${minute}:${secondLeft < 10 ? `0${secondLeft}` : secondLeft}`;
@@ -287,10 +292,10 @@ function Time({ onPlaylistSeek }: Pick<PlaylistPlayerProps, "onPlaylistSeek">) {
         aria-label="time-indicator"
         size="small"
         value={time}
-        min={0}
-        step={1}
+        min={start}
+        step={0.1}
         max={duration}
-        disabled={!Boolean(playback)}
+        disabled={!playback}
         onChange={(_, value) => setTimeOverride(value as number)}
         onChangeCommitted={handleTimeChange}
       />

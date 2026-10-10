@@ -31,8 +31,8 @@ import { RootState } from "../../app/store";
 import { movePlaylist, Track, addPlaylist, addTracks } from "./playlistsSlice";
 import { PlaylistAdd } from "./PlaylistAdd";
 import { SortableItem } from "../../common/SortableItem";
-import { startQueue } from "./playlistPlaybackSlice";
 import { useFolderDrop } from "../../common/useFolderDrop";
+import { FileDropError } from "../../common/FileDropError";
 import { getRandomBackground } from "../../backgrounds";
 import { useHideScrollbar } from "../../../renderer/common/useHideScrollbar";
 import { useNavigate } from "react-router-dom";
@@ -65,7 +65,7 @@ export function Playlists({ onPlay }: PlaylistsProps) {
   const sensors = useSensors(pointerSensor, keyboardSensor);
 
   const items = playlists.playlists.allIds.map(
-    (id) => playlists.playlists.byId[id]
+    (id) => playlists.playlists.byId[id],
   );
 
   const [dragId, setDragId] = useState<string | null>(null);
@@ -76,7 +76,7 @@ export function Playlists({ onPlay }: PlaylistsProps) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
-    if (active.id !== over.id) {
+    if (over && active.id !== over.id) {
       dispatch(movePlaylist({ active: active.id, over: over.id }));
     }
 
@@ -85,9 +85,9 @@ export function Playlists({ onPlay }: PlaylistsProps) {
 
   const [addOpen, setAddOpen] = useState(false);
 
-  const { dragging, containerListeners, overlayListeners } = useFolderDrop(
-    (directories) => {
-      for (let directory of Object.values(directories)) {
+  const { dragging, containerListeners, overlayListeners, error, clearError } =
+    useFolderDrop((directories) => {
+      for (const directory of Object.values(directories)) {
         const files = directory.audioFiles;
         if (files.length > 0 && directory.path !== "/") {
           const id = uuid();
@@ -97,19 +97,19 @@ export function Playlists({ onPlay }: PlaylistsProps) {
               background: getRandomBackground(),
               title: directory.name,
               tracks: [],
-            })
+            }),
           );
           dispatch(addTracks({ tracks: files, playlistId: id }));
         }
       }
-    }
-  );
+    });
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const hideScrollbar = useHideScrollbar(scrollRef);
 
   return (
     <>
+      <FileDropError error={error} onClose={clearError} />
       <WallPaper />
       <Container
         sx={{

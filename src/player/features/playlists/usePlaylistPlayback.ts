@@ -1,281 +1,173 @@
 import { useCallback, useEffect, useRef } from "react";
-import { Howl } from "howler";
-
-import { useDispatch, useSelector, useStore } from "react-redux";
+import { useStore } from "react-redux";
 import { RootState } from "../../app/store";
 import {
   playPause,
   playTrack,
   updatePlayback,
   updateQueue,
-  stopTrack,
 } from "./playlistPlaybackSlice";
 import { Track } from "./playlistsSlice";
+import { getFilteredTracks, getPlaybackIndex } from "./playlistTags";
+import { SmartShufflePlanner, smartShuffleEnabled } from "./smartShuffle";
+import { PlaylistAudio } from "./PlaylistAudio";
 
 export function usePlaylistPlayback(onError: (message: string) => void) {
-  const trackRef = useRef<Howl | null>(null);
-  const animationRef = useRef<number | null>(null);
-
-  const playlists = useSelector((state: RootState) => state.playlists);
   const store = useStore<RootState>();
-  const muted = useSelector((state: RootState) => state.playlistPlayback.muted);
-  const repeat = useSelector(
-    (state: RootState) => state.playlistPlayback.repeat
-  );
-  const shuffle = useSelector(
-    (state: RootState) => state.playlistPlayback.shuffle
-  );
-  const queue = useSelector((state: RootState) => state.playlistPlayback.queue);
-  const playbackTrack = useSelector(
-    (state: RootState) => state.playlistPlayback.track
-  );
-  const dispatch = useDispatch();
+  const errorRef = useRef(onError);
+  errorRef.current = onError;
+  const engine = useRef<PlaylistAudio>();
+  const planner = useRef(new SmartShufflePlanner());
+  const manualTrack = useRef<string>();
 
-  const play = useCallback(
-    (track: Track) => {
-      let prevTrack = trackRef.current;
-      function removePrevTrack() {
-        if (prevTrack) {
-          prevTrack.unload();
-          prevTrack = undefined;
-        }
-      }
-      function error() {
-        trackRef.current = undefined;
-        dispatch(stopTrack());
-        removePrevTrack();
-        onError(`Unable to play track: ${track.title}`);
-      }
+  function candidate(direction: 1 | -1, restartCurrent = false) {
+    const state = store.getState();
+    const playback = state.playlistPlayback;
+    const queue = playback.queue;
+    const playlist = queue && state.playlists.playlists.byId[queue.playlistId];
+    if (!queue || !playlist) return undefined;
+    const eligible = getFilteredTracks(playlist, state.playlists.tracks).filter(
+      (id) => queue.tracks.includes(id),
+    );
+    if (smartShuffleEnabled(playlist, playback.shuffle, playback.repeat)) {
+      const currentId = playback.track?.id;
+      const id =
+        restartCurrent && eligible.includes(currentId)
+          ? currentId
+          : planner.current.choose(
+              direction,
+              playlist,
+              state.playlists.tracks,
+              eligible,
+              playback.recentByPlaylist?.[playlist.id] ?? [],
+            );
+      return id
+        ? {
+            index: queue.shuffled.indexOf(queue.tracks.indexOf(id)),
+            track: state.playlists.tracks[id],
+          }
+        : undefined;
+    }
+    const index = getPlaybackIndex(
+      queue,
+      playback.shuffle,
+      playback.repeat,
+      getFilteredTracks(playlist, state.playlists.tracks),
+      direction,
+      restartCurrent,
+    );
+    if (index === undefined) return undefined;
+    const id = queue.tracks[playback.shuffle ? queue.shuffled[index] : index];
+    return { index, track: state.playlists.tracks[id] };
+  }
 
-      try {
-        const howl = new Howl({
-          src: track.url,
-          html5: true,
-          mute: muted,
-          volume: 0,
-        });
-
-        trackRef.current = howl;
-        howl.once("load", () => {
-          dispatch(
-            playTrack({
-              track,
-              duration: Math.floor(howl.duration()),
-            })
+  if (!engine.current)
+    engine.current = new PlaylistAudio({
+      next: () => candidate(1)?.track,
+      crossfade: () => {
+        const state = store.getState();
+        return (
+          state.playlists.playlists.byId[
+            state.playlistPlayback.queue?.playlistId
+          ]?.crossfadeSeconds ?? 0
+        );
+      },
+      onStart: (track, duration, playing) => {
+        const { queue, shuffle } = store.getState().playlistPlayback;
+        if (queue) {
+          planner.current.commit(
+            queue.playlistId,
+            track.id,
+            manualTrack.current === track.id,
           );
-          // Fade out previous track and fade in new track
-          if (prevTrack) {
-            prevTrack.fade(prevTrack.volume(), 0, 1000);
-            prevTrack.once("fade", removePrevTrack);
-          }
-          howl.fade(0, store.getState().playlistPlayback.volume, 1000);
-          // Update playback
-          // Create playback animation
-          if (animationRef.current !== null) {
-            cancelAnimationFrame(animationRef.current);
-          }
-          let prevTime = performance.now();
-          function animatePlayback(time: number) {
-            animationRef.current = requestAnimationFrame(animatePlayback);
-            // Limit update to 1 time per second
-            const delta = time - prevTime;
-            if (howl.playing() && delta > 1000) {
-              dispatch(updatePlayback(Math.floor(howl.seek())));
-              prevTime = time;
-            }
-          }
-          animationRef.current = requestAnimationFrame(animatePlayback);
-        });
-
-        howl.on("loaderror", error);
-
-        howl.on("playerror", error);
-
-        const sound = (howl as any)._sounds[0];
-        if (!sound) {
-          error();
+          const index = queue.tracks.indexOf(track.id);
+          if (index >= 0)
+            store.dispatch(
+              updateQueue(shuffle ? queue.shuffled.indexOf(index) : index),
+            );
         }
-      } catch {
-        error();
-      }
-    },
-    [onError, muted, store]
-  );
-
-  const seek = useCallback((to: number) => {
-    dispatch(updatePlayback(to));
-    trackRef.current?.seek(to);
-  }, []);
-
-  const stop = useCallback(() => {
-    dispatch(playPause(false));
-    dispatch(updatePlayback(0));
-    trackRef.current?.stop();
-  }, []);
-
-  const next = useCallback(() => {
-    if (!trackRef.current) {
-      return;
-    }
-    if (!queue) {
-      stop();
-    } else if (repeat === "track") {
-      seek(0);
-    } else {
-      let index = queue.current + 1;
-
-      if (index >= queue.tracks.length) {
-        // Repeat off just stop the playback
-        if (repeat === "off") {
-          stop();
-          return;
-        }
-        index = 0;
-      }
-
-      let id: string;
-      if (shuffle) {
-        id = queue.tracks[queue.shuffled[index]];
-      } else {
-        id = queue.tracks[index];
-      }
-      if (id) {
-        if (id === playbackTrack?.id) {
-          // Playing the same track just restart it
-          seek(0);
-        } else {
-          // Play the previous track
-          const previousTrack = playlists.tracks[id];
-          if (previousTrack) {
-            play(previousTrack);
-            dispatch(updateQueue(index));
-          }
-        }
-      }
-    }
-  }, [repeat, queue, shuffle, playbackTrack, playlists, seek, play, stop]);
-
-  const previous = useCallback(() => {
-    if (!trackRef.current) {
-      return;
-    }
-    if (!queue) {
-      stop();
-    } else if (repeat === "track") {
-      seek(0);
-    } else {
-      let index = queue.current;
-      // Only go to previous if at the start of the track
-      if (trackRef.current.seek() < 5) {
-        index -= 1;
-      }
-      if (index < 0) {
-        // Start of playlist with repeat off just stop the track
-        if (repeat === "off") {
-          stop();
-          return;
-        }
-        index = queue.tracks.length - 1;
-      }
-      let id: string;
-      if (shuffle) {
-        id = queue.tracks[queue.shuffled[index]];
-      } else {
-        id = queue.tracks[index];
-      }
-      if (id) {
-        if (id === playbackTrack?.id) {
-          // Playing the same track just restart it
-          seek(0);
-        } else {
-          // Play the next track
-          const nextTrack = playlists.tracks[id];
-          if (nextTrack) {
-            play(nextTrack);
-            dispatch(updateQueue(index));
-          }
-        }
-      }
-    }
-  }, [repeat, queue, shuffle, playbackTrack, playlists, seek, play, stop]);
+        manualTrack.current = undefined;
+        store.dispatch(playTrack({ track, duration }));
+        if (!playing) store.dispatch(playPause(false));
+      },
+      onProgress: (seconds) => store.dispatch(updatePlayback(seconds)),
+      onStop: () => {
+        store.dispatch(playPause(false));
+        store.dispatch(
+          updatePlayback(
+            store.getState().playlistPlayback.track?.startSeconds ?? 0,
+          ),
+        );
+      },
+      onError: (message) => errorRef.current(message),
+    });
 
   useEffect(() => {
-    const track = trackRef.current;
-    // Move to next song or repeat this song on track end
-    function handleEnd() {
-      if (!queue) {
-        stop();
-      } else if (repeat === "track") {
-        seek(0);
-        track?.play();
-      } else {
-        let index = queue.current + 1;
-        if (index >= queue.tracks.length) {
-          // Repeat off just stop the playback
-          if (repeat === "off") {
-            stop();
-            return;
-          }
-          index = 0;
-        }
-        let id: string;
-        if (shuffle) {
-          id = queue.tracks[queue.shuffled[index]];
-        } else {
-          id = queue.tracks[index];
-        }
-        if (id) {
-          if (id === playbackTrack?.id) {
-            // Playing the same track just restart it
-            seek(0);
-            track?.play();
-          } else {
-            // Play the next track
-            const nextTrack = playlists.tracks[id];
-            if (nextTrack) {
-              play(nextTrack);
-              dispatch(updateQueue(index));
-            }
-          }
-        }
-      }
-    }
-    track?.on("end", handleEnd);
+    const timer = setInterval(() => engine.current.tick(), 50);
     return () => {
-      track?.off("end", handleEnd);
+      clearInterval(timer);
+      engine.current.dispose();
     };
-  }, [repeat, queue, shuffle, playbackTrack, playlists, play, seek, stop]);
+  }, []);
 
-  const pauseResume = useCallback((resume: boolean) => {
-    if (trackRef.current) {
-      if (resume) {
-        trackRef.current.play();
-      } else {
-        trackRef.current.pause();
+  const play = useCallback(
+    (track: Track, transitionSeconds?: number) => {
+      const state = store.getState().playlistPlayback;
+      engine.current.volume(state.volume);
+      engine.current.mute(state.muted);
+      manualTrack.current = track.id;
+      if (state.queue) planner.current.clearPending(state.queue.playlistId);
+      engine.current.play(track, false, transitionSeconds);
+    },
+    [store],
+  );
+  const advance = useCallback(
+    (direction: 1 | -1) => {
+      const playback = store.getState().playlistPlayback;
+      const next = candidate(
+        direction,
+        direction === -1 &&
+          playback.playback?.progress - (playback.track?.startSeconds ?? 0) >=
+            5,
+      );
+      if (!next?.track) {
+        engine.current.stop();
+        return;
       }
-    }
-  }, []);
-
-  const mute = useCallback((muted: boolean) => {
-    if (trackRef.current) {
-      trackRef.current.mute(muted);
-    }
-  }, []);
-
-  const volume = useCallback((volume: number) => {
-    if (trackRef.current) {
-      trackRef.current.volume(volume);
-    }
-  }, []);
+      const playlist =
+        store.getState().playlists.playlists.byId[playback.queue?.playlistId];
+      const smart =
+        playlist &&
+        smartShuffleEnabled(playlist, playback.shuffle, playback.repeat);
+      const restarting =
+        direction === -1 &&
+        playback.playback?.progress - (playback.track?.startSeconds ?? 0) >= 5;
+      if (next.track.id === playback.track?.id && (!smart || restarting))
+        engine.current.seek(0);
+      else {
+        manualTrack.current = undefined;
+        engine.current.play(next.track);
+      }
+    },
+    [store, play],
+  );
 
   return {
-    seek,
     play,
-    next,
-    previous,
-    stop,
-    pauseResume,
-    mute,
-    volume,
+    seek: useCallback((seconds: number) => engine.current.seek(seconds), []),
+    next: useCallback(() => advance(1), [advance]),
+    previous: useCallback(() => advance(-1), [advance]),
+    retainCurrent: useCallback(() => engine.current.retainCurrent(), []),
+    fadeOut: useCallback(
+      (seconds: number) => engine.current.fadeOut(seconds),
+      [],
+    ),
+    stop: useCallback(() => engine.current.stop(), []),
+    pauseResume: useCallback(
+      (resume: boolean) => engine.current.pauseResume(resume),
+      [],
+    ),
+    mute: useCallback((value: boolean) => engine.current.mute(value), []),
+    volume: useCallback((value: number) => engine.current.volume(value), []),
   };
 }

@@ -27,7 +27,6 @@ import { useDispatch } from "react-redux";
 import { Soundboard, Sound, moveSound } from "./soundboardsSlice";
 
 import { useHideScrollbar } from "../../../renderer/common/useHideScrollbar";
-import Stack from "@mui/material/Stack";
 
 type SoundboardSoundsProps = {
   soundboard: Soundboard;
@@ -59,7 +58,7 @@ export function SoundboardSounds({
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
-    if (active.id !== over.id) {
+    if (over && active.id !== over.id) {
       dispatch(
         moveSound({
           soundboardId: soundboard.id,
@@ -80,13 +79,12 @@ export function SoundboardSounds({
       sx={{
         overflowY: "auto",
         maskImage:
-          "linear-gradient(to bottom, transparent, black 60px, black calc(100% - 64px), transparent)",
-        position: "absolute",
+          "linear-gradient(to bottom, black, black calc(100% - 64px), transparent)",
+        position: "relative",
         width: "100%",
-        height: "calc(100% - 60px)",
-        pt: "60px",
-        top: "60px",
-        left: 0,
+        flex: 1,
+        minHeight: 0,
+        pt: 1,
         px: 2,
       }}
       ref={scrollRef}

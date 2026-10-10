@@ -32,6 +32,7 @@ import { RootState } from "../../app/store";
 import { getRandomBackground } from "../../backgrounds";
 import { SortableItem } from "../../common/SortableItem";
 import { useFolderDrop } from "../../common/useFolderDrop";
+import { FileDropError } from "../../common/FileDropError";
 import { SoundboardAdd } from "./SoundboardAdd";
 import { SoundboardItem } from "./SoundboardItem";
 import {
@@ -60,7 +61,7 @@ export function Soundboards({ onPlay }: SoundboardProps) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const soundboards = useSelector(
-    (state: RootState) => state.soundboards.soundboards
+    (state: RootState) => state.soundboards.soundboards,
   );
 
   const pointerSensor = useSensor(PointerSensor, {
@@ -80,7 +81,7 @@ export function Soundboards({ onPlay }: SoundboardProps) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
-    if (active.id !== over.id) {
+    if (over && active.id !== over.id) {
       dispatch(moveSoundboard({ active: active.id, over: over.id }));
     }
 
@@ -89,9 +90,9 @@ export function Soundboards({ onPlay }: SoundboardProps) {
 
   const [addOpen, setAddOpen] = useState(false);
 
-  const { dragging, containerListeners, overlayListeners } = useFolderDrop(
-    (directories) => {
-      for (let directory of Object.values(directories)) {
+  const { dragging, containerListeners, overlayListeners, error, clearError } =
+    useFolderDrop((directories) => {
+      for (const directory of Object.values(directories)) {
         const files = directory.audioFiles;
         if (files.length > 0 && directory.path !== "/") {
           const id = uuid();
@@ -101,7 +102,7 @@ export function Soundboards({ onPlay }: SoundboardProps) {
               background: getRandomBackground(),
               title: directory.name,
               sounds: [],
-            })
+            }),
           );
           dispatch(
             addSounds({
@@ -113,18 +114,18 @@ export function Soundboards({ onPlay }: SoundboardProps) {
                 fadeOut: 100,
               })),
               soundboardId: id,
-            })
+            }),
           );
         }
       }
-    }
-  );
+    });
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const hideScrollbar = useHideScrollbar(scrollRef);
 
   return (
     <>
+      <FileDropError error={error} onClose={clearError} />
       <WallPaper />
       <Container
         sx={{

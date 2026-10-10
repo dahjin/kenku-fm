@@ -1,6 +1,15 @@
 const path = require("path");
+const { installLinuxLauncher } = require("./scripts/packageLinuxLauncher.cjs");
 
 const config = {
+  hooks: {
+    postPackage: async (_forgeConfig, packageResult) => {
+      if (packageResult.platform !== "linux") return;
+      for (const outputPath of packageResult.outputPaths) {
+        installLinuxLauncher(outputPath);
+      }
+    },
+  },
   packagerConfig: {
     executableName: "kenku-fm",
     out: "./out",

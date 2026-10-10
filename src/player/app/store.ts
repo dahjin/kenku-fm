@@ -23,12 +23,18 @@ const playbackPersistConfig = {
   whitelist: ["volume", "muted", "shuffle", "repeat"],
 };
 
+import scenesReducer, {
+  scenePlaybackReducer,
+} from "../features/scenes/scenesSlice";
+
 const rootReducer = combineReducers({
+  scenes: scenesReducer,
+  scenePlayback: scenePlaybackReducer,
   playlists: playlistsReducer,
   soundboards: soundboardsReducer,
   playlistPlayback: persistReducer(
     playbackPersistConfig,
-    playlsitPlaybackReducer
+    playlsitPlaybackReducer,
   ),
   soundboardPlayback: soundboardPlaybackReducer,
 });
@@ -37,7 +43,7 @@ const persistConfig = {
   key: "player",
   version: 1,
   storage,
-  whitelist: ["playlists", "soundboards"],
+  whitelist: ["playlists", "soundboards", "scenes"],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

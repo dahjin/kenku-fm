@@ -1,12 +1,23 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { normalizeTags } from "./playlistTags";
 
 export interface Track {
   id: string;
   url: string;
   title: string;
+  tags?: string[];
+  frequency?: number;
+  startSeconds?: number;
+  endSeconds?: number | null;
+  crossfadeSeconds?: number | null;
 }
 
 export interface Playlist {
+  smartShuffle?: boolean;
+  avoidRecent?: number;
+  tagPriorities?: Record<string, number>;
+  crossfadeSeconds?: number;
+  tagFilter?: string[];
   tracks: string[];
   background: string;
   title: string;
@@ -38,12 +49,12 @@ export const playlistsSlice = createSlice({
       state.playlists.allIds.push(action.payload.id);
     },
     removePlaylist: (state, action: PayloadAction<string>) => {
-      for (let track of state.playlists.byId[action.payload].tracks) {
+      for (const track of state.playlists.byId[action.payload].tracks) {
         delete state.tracks[track];
       }
       delete state.playlists.byId[action.payload];
       state.playlists.allIds = state.playlists.allIds.filter(
-        (id) => id !== action.payload
+        (id) => id !== action.payload,
       );
     },
     editPlaylist: (state, action: PayloadAction<Partial<Playlist>>) => {
@@ -53,11 +64,14 @@ export const playlistsSlice = createSlice({
       state.playlists.byId[action.payload.id] = {
         ...state.playlists.byId[action.payload.id],
         ...action.payload,
+        ...(action.payload.tagFilter && {
+          tagFilter: normalizeTags(action.payload.tagFilter),
+        }),
       };
     },
     addTrack: (
       state,
-      action: PayloadAction<{ track: Track; playlistId: string }>
+      action: PayloadAction<{ track: Track; playlistId: string }>,
     ) => {
       const { track, playlistId } = action.payload;
       state.playlists.byId[playlistId].tracks.unshift(track.id);
@@ -65,19 +79,19 @@ export const playlistsSlice = createSlice({
     },
     addTracks: (
       state,
-      action: PayloadAction<{ tracks: Track[]; playlistId: string }>
+      action: PayloadAction<{ tracks: Track[]; playlistId: string }>,
     ) => {
       const { tracks, playlistId } = action.payload;
       state.playlists.byId[playlistId].tracks.unshift(
-        ...tracks.map((track) => track.id)
+        ...tracks.map((track) => track.id),
       );
-      for (let track of tracks) {
+      for (const track of tracks) {
         state.tracks[track.id] = track;
       }
     },
     removeTrack: (
       state,
-      action: PayloadAction<{ trackId: string; playlistId: string }>
+      action: PayloadAction<{ trackId: string; playlistId: string }>,
     ) => {
       const { trackId, playlistId } = action.payload;
       state.playlists.byId[playlistId].tracks = state.playlists.byId[
@@ -92,11 +106,14 @@ export const playlistsSlice = createSlice({
       state.tracks[action.payload.id] = {
         ...state.tracks[action.payload.id],
         ...action.payload,
+        ...(action.payload.tags && {
+          tags: normalizeTags(action.payload.tags),
+        }),
       };
     },
     movePlaylist: (
       state,
-      action: PayloadAction<{ active: string; over: string }>
+      action: PayloadAction<{ active: string; over: string }>,
     ) => {
       const oldIndex = state.playlists.allIds.indexOf(action.payload.active);
       const newIndex = state.playlists.allIds.indexOf(action.payload.over);
@@ -109,7 +126,7 @@ export const playlistsSlice = createSlice({
         playlistId: string;
         active: string;
         over: string;
-      }>
+      }>,
     ) => {
       const playlist = state.playlists.byId[action.payload.playlistId];
       const oldIndex = playlist.tracks.indexOf(action.payload.active);

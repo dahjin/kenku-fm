@@ -1,115 +1,101 @@
 import React from "react";
-import Card from "@mui/material/Card";
-import CardMedia from "@mui/material/CardMedia";
-import Typography from "@mui/material/Typography";
-import CardActionArea from "@mui/material/CardActionArea";
+import { IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrowRounded";
 import PauseIcon from "@mui/icons-material/PauseRounded";
-import IconButton from "@mui/material/IconButton";
-import Box from "@mui/material/Box";
-
 import { backgrounds, isBackground } from "../../backgrounds";
-
-import { Playlist, Track } from "./playlistsSlice";
-import { useDispatch, useSelector } from "react-redux";
+import { LibraryCard } from "../../common/LibraryCard";
+import { editPlaylist, Playlist, Track } from "./playlistsSlice";
+import { getFilteredTracks } from "./playlistTags";
+import { useDispatch, useSelector, useStore } from "react-redux";
 import { RootState } from "../../app/store";
 import { playPause, startQueue } from "./playlistPlaybackSlice";
+import { TagFilters } from "./TagFilters";
+import { playlistQuickPlay } from "./playlistQuickPlay";
 
 type PlaylistItemProps = {
   playlist: Playlist;
   onSelect: (id: string) => void;
   onPlay: (track: Track) => void;
+  quickControls?: boolean;
 };
-
 export function PlaylistItem({
   playlist,
   onSelect,
   onPlay,
+  quickControls = false,
 }: PlaylistItemProps) {
-  const playlists = useSelector((state: RootState) => state.playlists);
+  const tracks = useSelector((state: RootState) => state.playlists.tracks);
   const playing = useSelector(
     (state: RootState) =>
       state.playlistPlayback.playing &&
-      state.playlistPlayback.queue?.playlistId === playlist.id
+      state.playlistPlayback.queue?.playlistId === playlist.id,
   );
-  const queue = useSelector((state: RootState) => state.playlistPlayback.queue);
-  const shuffle = useSelector(
-    (state: RootState) => state.playlistPlayback.shuffle
-  );
-
+  const store = useStore<RootState>();
   const dispatch = useDispatch();
-
   const image = isBackground(playlist.background)
     ? backgrounds[playlist.background]
     : playlist.background;
-
-  function handlePlay() {
-    if (queue?.playlistId === playlist.id) {
-      dispatch(playPause(!playing));
-    } else {
-      let tracks = [...playlist.tracks];
-      const trackIndex = shuffle
-        ? Math.floor(Math.random() * tracks.length)
-        : 0;
-      const trackId = tracks[trackIndex];
-      const track = playlists.tracks[trackId];
-      if (track) {
-        dispatch(startQueue({ tracks, trackId, playlistId: playlist.id }));
-        onPlay(track);
-      }
+  const matching = getFilteredTracks(playlist, tracks);
+  const selected = playlist.tagFilter ?? [];
+  function play(value: Playlist, filtering = false) {
+    const state = store.getState();
+    const decision = playlistQuickPlay(
+      value,
+      state.playlists.tracks,
+      state.playlistPlayback,
+      filtering,
+    );
+    if (decision.type === "pause" || decision.type === "resume")
+      dispatch(playPause(decision.type === "resume"));
+    if (decision.type === "play") {
+      dispatch(
+        startQueue({
+          tracks: value.tracks,
+          trackId: decision.trackId,
+          playlistId: value.id,
+        }),
+      );
+      onPlay(state.playlists.tracks[decision.trackId]);
     }
   }
-
+  function filter(tagFilter: string[]) {
+    const value = { ...playlist, tagFilter };
+    dispatch(editPlaylist({ id: playlist.id, tagFilter }));
+    play(value, true);
+  }
   return (
-    <Card sx={{ position: "relative" }}>
-      <CardActionArea onClick={() => onSelect(playlist.id)}>
-        <CardMedia
-          component="img"
-          height="200px"
-          image={image}
-          alt={"Background"}
-          sx={{ pointerEvents: "none" }}
-        />
-      </CardActionArea>
-      <Box
-        sx={{
-          backgroundImage:
-            "linear-gradient(0deg, #00000088 30%, #ffffff44 100%)",
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          pointerEvents: "none",
-        }}
-      />
-      <Box
-        sx={{
-          padding: 2,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          position: "absolute",
-          bottom: 0,
-          width: "100%",
-          pointerEvents: "none",
-        }}
-      >
-        <Typography variant="h5" component="div">
-          {playlist.title}
-        </Typography>
-        <IconButton
-          aria-label="play/pause"
-          sx={{ pointerEvents: "all" }}
-          onClick={handlePlay}
-        >
-          {playing ? (
-            <PauseIcon sx={{ fontSize: "2rem" }} />
-          ) : (
-            <PlayArrowIcon sx={{ fontSize: "2rem" }} />
-          )}
-        </IconButton>
-      </Box>
-    </Card>
+    <LibraryCard
+      title={playlist.title}
+      image={image}
+      onOpen={() => onSelect(playlist.id)}
+      action={
+        <Tooltip title={playing ? "Pause playlist" : "Play matching tracks"}>
+          <span>
+            <IconButton
+              aria-label={`${playing ? "Pause" : "Play"} ${playlist.title}`}
+              disabled={!playing && !matching.length}
+              onClick={() => play(playlist)}
+              sx={{ color: "white", bgcolor: "#00000044" }}
+            >
+              {playing ? <PauseIcon /> : <PlayArrowIcon />}
+            </IconButton>
+          </span>
+        </Tooltip>
+      }
+    >
+      {quickControls && (
+        <Stack spacing={1}>
+          <TagFilters playlist={playlist} tracks={tracks} onChange={filter} />
+          <Typography
+            variant="caption"
+            color={matching.length ? "text.secondary" : "warning.main"}
+          >
+            {matching.length} matching{" "}
+            {matching.length === 1 ? "track" : "tracks"}
+            {selected.length > 1 ? " · matches all tags" : ""}
+          </Typography>
+        </Stack>
+      )}
+    </LibraryCard>
   );
 }

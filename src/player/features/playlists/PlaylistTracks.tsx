@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 
 import Box from "@mui/material/Box";
 import List from "@mui/material/List";
+import Typography from "@mui/material/Typography";
 
 import {
   DndContext,
@@ -59,7 +60,7 @@ export function PlaylistTracks({
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
-    if (active.id !== over.id) {
+    if (over && active.id !== over.id) {
       dispatch(
         moveTrack({
           playlistId: playlist.id,
@@ -87,13 +88,11 @@ export function PlaylistTracks({
       sx={{
         overflowY: "auto",
         maskImage:
-          "linear-gradient(to bottom, transparent, black 60px, black calc(100% - 64px), transparent)",
-        position: "absolute",
+          "linear-gradient(to bottom, black, black calc(100% - 64px), transparent)",
+        position: "relative",
         width: "100%",
-        height: "calc(100% - 60px)",
-        pt: "60px",
-        top: "60px",
-        left: 0,
+        flex: 1,
+        minHeight: 0,
         px: 2,
       }}
       ref={scrollRef}
@@ -108,6 +107,13 @@ export function PlaylistTracks({
           marginBottom: "240px",
         }}
       >
+        {items.length === 0 && (
+          <Typography role="status" textAlign="center" sx={{ p: 3 }}>
+            {playlist.tracks.length
+              ? "No tracks match these tags. Clear the filter to show all tracks."
+              : "Add tracks to get started."}
+          </Typography>
+        )}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}

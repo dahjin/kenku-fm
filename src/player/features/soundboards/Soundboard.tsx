@@ -16,6 +16,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
 import { RootState } from "../../app/store";
+import { SoundGroups } from "./SoundGroups";
 import { SoundAdd } from "./SoundAdd";
 import { SoundboardSettings } from "./SoundboardSettings";
 import { SoundboardSounds } from "./SoundboardSounds";
@@ -23,6 +24,7 @@ import { addSounds, removeSoundboard, Sound } from "./soundboardsSlice";
 
 import { backgrounds, isBackground } from "../../backgrounds";
 import { useFolderDrop } from "../../common/useFolderDrop";
+import { FileDropError } from "../../common/FileDropError";
 
 type SoundboardProps = {
   onPlay: (sound: Sound) => void;
@@ -34,7 +36,7 @@ export function Soundboard({ onPlay, onStop }: SoundboardProps) {
   const navigate = useNavigate();
   const { soundboardId } = useParams();
   const soundboard = useSelector(
-    (state: RootState) => state.soundboards.soundboards.byId[soundboardId]
+    (state: RootState) => state.soundboards.soundboards.byId[soundboardId],
   );
 
   const [addOpen, setAddOpen] = useState(false);
@@ -69,10 +71,10 @@ export function Soundboard({ onPlay, onStop }: SoundboardProps) {
     handleMenuClose();
   }
 
-  const { dragging, containerListeners, overlayListeners } = useFolderDrop(
-    (directories) => {
+  const { dragging, containerListeners, overlayListeners, error, clearError } =
+    useFolderDrop((directories) => {
       const sounds: Sound[] = [];
-      for (let directory of Object.values(directories)) {
+      for (const directory of Object.values(directories)) {
         sounds.push(
           ...directory.audioFiles.map((file) => ({
             ...file,
@@ -80,15 +82,15 @@ export function Soundboard({ onPlay, onStop }: SoundboardProps) {
             volume: 1,
             fadeIn: 100,
             fadeOut: 100,
-          }))
+          })),
         );
       }
       dispatch(addSounds({ sounds, soundboardId: soundboard.id }));
-    }
-  );
+    });
 
   return (
     <>
+      <FileDropError error={error} onClose={clearError} />
       <Container
         sx={{
           padding: "0px !important",
@@ -146,6 +148,7 @@ export function Soundboard({ onPlay, onStop }: SoundboardProps) {
             </IconButton>
           </Stack>
         </Stack>
+        <SoundGroups board={soundboard} />
         <SoundboardSounds
           soundboard={soundboard}
           onPlay={onPlay}

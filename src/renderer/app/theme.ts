@@ -14,10 +14,18 @@ export const themeOptions: ThemeOptions = {
       default: "#1e2231",
     },
   },
+  typography: {
+    button: { textTransform: "none", fontWeight: 600 },
+  },
   shape: {
     borderRadius: 16,
   },
   components: {
+    MuiButton: { defaultProps: { disableElevation: true } },
+    MuiTooltip: { defaultProps: { arrow: true, enterDelay: 400 } },
+    MuiDialogTitle: { styleOverrides: { root: { fontWeight: 600 } } },
+    MuiDialogActions: { styleOverrides: { root: { padding: "16px 24px" } } },
+    MuiTextField: { defaultProps: { size: "small" } },
     MuiAppBar: {
       styleOverrides: {
         root: {
@@ -25,9 +33,25 @@ export const themeOptions: ThemeOptions = {
         },
       },
     },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          "&.Mui-focusVisible": {
+            outline: "2px solid #bb99ff",
+            outlineOffset: 2,
+          },
+        },
+      },
+    },
     MuiButtonBase: {
-      defaultProps: {
-        disableRipple: true,
+      defaultProps: { disableRipple: true },
+      styleOverrides: {
+        root: {
+          "&.Mui-focusVisible": {
+            outline: "2px solid #bb99ff",
+            outlineOffset: -2,
+          },
+        },
       },
     },
     MuiSwitch: {

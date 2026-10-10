@@ -8,7 +8,7 @@ import Chip from "@mui/material/Chip";
 
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../app/store";
-import { stopSound } from "../soundboards/soundboardPlaybackSlice";
+import { stopGroup, stopSound } from "../soundboards/soundboardPlaybackSlice";
 
 const SoundProgress = styled(LinearProgress)({
   height: 32,
@@ -30,7 +30,7 @@ type SoundboardPlayerProps = {
 export function SoundboardPlayer({ onSoundboardStop }: SoundboardPlayerProps) {
   const dispatch = useDispatch();
   const soundboardPlayback = useSelector(
-    (state: RootState) => state.soundboardPlayback
+    (state: RootState) => state.soundboardPlayback,
   );
 
   function handleSoundboardStop(id: string) {
@@ -40,20 +40,33 @@ export function SoundboardPlayer({ onSoundboardStop }: SoundboardPlayerProps) {
 
   const sounds = Object.values(soundboardPlayback.playback);
 
-  if (sounds.length === 0) {
+  const groups = Object.entries(soundboardPlayback.groups);
+  if (sounds.length === 0 && groups.length === 0) {
     return null;
   }
 
   return (
     <Stack direction="row" gap={1} pb={1} overflow="auto">
+      {groups.map(([id, group]) => (
+        <Chip
+          key={id}
+          color="primary"
+          label={`${group.title} · ${group.waiting ? "waiting" : "playing"}`}
+          onDelete={() => dispatch(stopGroup(id))}
+        />
+      ))}
       {sounds.map((sound) => (
         <Box sx={{ position: "relative" }} key={sound.id}>
           <SoundProgress
             variant="determinate"
-            value={Math.min((sound.progress / sound.duration) * 100, 100)}
+            value={
+              sound.waiting || !sound.duration
+                ? 0
+                : Math.min((sound.progress / sound.duration) * 100, 100)
+            }
           />
           <Chip
-            label={sound.title}
+            label={sound.waiting ? `${sound.title} · waiting` : sound.title}
             onDelete={() => handleSoundboardStop(sound.id)}
           />
         </Box>

@@ -18,9 +18,17 @@ import Typography from "@mui/material/Typography";
 import { RootState } from "../../app/store";
 import { backgrounds, isBackground } from "../../backgrounds";
 import { useFolderDrop } from "../../common/useFolderDrop";
+import { FileDropError } from "../../common/FileDropError";
 import { addTracksToQueueIfNeeded, startQueue } from "./playlistPlaybackSlice";
 import { PlaylistSettings } from "./PlaylistSettings";
-import { addTracks, removePlaylist, Track } from "./playlistsSlice";
+import {
+  addTracks,
+  editPlaylist,
+  removePlaylist,
+  Track,
+} from "./playlistsSlice";
+import { getFilteredTracks, getPlaylistTags } from "./playlistTags";
+import { TagFilters } from "./TagFilters";
 import { PlaylistTracks } from "./PlaylistTracks";
 import { TrackAdd } from "./TrackAdd";
 
@@ -38,7 +46,9 @@ export function Playlist({ onPlay }: PlaylistProps) {
   const [addOpen, setAddOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const items = playlist.tracks.map((id) => playlists.tracks[id]);
+  const items = getFilteredTracks(playlist, playlists.tracks).map(
+    (id) => playlists.tracks[id],
+  );
 
   const image = isBackground(playlist.background)
     ? backgrounds[playlist.background]
@@ -71,17 +81,17 @@ export function Playlist({ onPlay }: PlaylistProps) {
 
   function handleTrackPlay(trackId: string) {
     const track = playlists.tracks[trackId];
-    if (track) {
-      let tracks = [...playlist.tracks];
+    if (track && items.some((item) => item.id === trackId)) {
+      const tracks = [...playlist.tracks];
       dispatch(startQueue({ tracks, trackId, playlistId: playlist.id }));
       onPlay(track);
     }
   }
 
-  const { dragging, containerListeners, overlayListeners } = useFolderDrop(
-    (directories) => {
+  const { dragging, containerListeners, overlayListeners, error, clearError } =
+    useFolderDrop((directories) => {
       const tracks: Track[] = [];
-      for (let directory of Object.values(directories)) {
+      for (const directory of Object.values(directories)) {
         tracks.push(...directory.audioFiles);
       }
       dispatch(addTracks({ tracks, playlistId: playlist.id }));
@@ -91,11 +101,11 @@ export function Playlist({ onPlay }: PlaylistProps) {
           trackIds: tracks.map((track) => track.id),
         }),
       );
-    },
-  );
+    });
 
   return (
     <>
+      <FileDropError error={error} onClose={clearError} />
       <Container
         sx={{
           padding: "0px !important",
@@ -153,6 +163,33 @@ export function Playlist({ onPlay }: PlaylistProps) {
             </IconButton>
           </Stack>
         </Stack>
+        <Box
+          sx={{
+            zIndex: 1,
+            px: 3,
+            pb: 1,
+            width: "100%",
+            maxWidth: 720,
+            mx: "auto",
+          }}
+        >
+          <TagFilters
+            playlist={playlist}
+            tracks={playlists.tracks}
+            onChange={(tagFilter) =>
+              dispatch(editPlaylist({ id: playlist.id, tagFilter }))
+            }
+          />
+          <Typography variant="caption" component="div">
+            {items.length} of {playlist.tracks.length} tracks · Matches all
+            selected tags
+          </Typography>
+          {!getPlaylistTags(playlist, playlists.tracks).length && (
+            <Typography variant="caption">
+              Add tags using a track’s Edit menu to filter here.
+            </Typography>
+          )}
+        </Box>
         <PlaylistTracks
           items={items}
           playlist={playlist}

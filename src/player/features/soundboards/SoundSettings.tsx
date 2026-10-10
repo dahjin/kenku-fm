@@ -1,4 +1,8 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import Switch from "@mui/material/Switch";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Typography from "@mui/material/Typography";
+import { validRepeatInterval } from "./repeatInterval";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Dialog from "@mui/material/Dialog";
@@ -23,6 +27,20 @@ type SoundSettingsProps = {
 
 export function SoundSettings({ sound, open, onClose }: SoundSettingsProps) {
   const dispatch = useDispatch();
+  const [repeatEnabled, setRepeatEnabled] = useState(false);
+  const [minimum, setMinimum] = useState("3");
+  const [maximum, setMaximum] = useState("8");
+  useEffect(() => {
+    if (open) {
+      setRepeatEnabled(Boolean(sound.repeatInterval));
+      setMinimum(String(sound.repeatInterval?.minSeconds ?? 3));
+      setMaximum(String(sound.repeatInterval?.maxSeconds ?? 8));
+    }
+  }, [open, sound.id]);
+  const interval = { minSeconds: Number(minimum), maxSeconds: Number(maximum) };
+  const valid =
+    !repeatEnabled ||
+    (minimum !== "" && maximum !== "" && validRepeatInterval(interval));
 
   function handleTitleChange(event: React.ChangeEvent<HTMLInputElement>) {
     dispatch(editSound({ id: sound.id, title: event.target.value }));
@@ -48,6 +66,13 @@ export function SoundSettings({ sound, open, onClose }: SoundSettingsProps) {
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (!valid) return;
+    dispatch(
+      editSound({
+        id: sound.id,
+        repeatInterval: repeatEnabled ? interval : null,
+      }),
+    );
     onClose();
   }
 
@@ -124,9 +149,50 @@ export function SoundSettings({ sound, open, onClose }: SoundSettingsProps) {
               />
             </FormControl>
           </Box>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={repeatEnabled}
+                onChange={(_, checked) => setRepeatEnabled(checked)}
+              />
+            }
+            label="Repeat at random intervals"
+          />
+          {repeatEnabled && (
+            <>
+              <Box sx={{ display: "flex", gap: 2, my: 1 }}>
+                <TextField
+                  label="Minimum wait (seconds)"
+                  type="number"
+                  value={minimum}
+                  onChange={(event) => setMinimum(event.target.value)}
+                  inputProps={{ min: 0.1, max: 86400, step: 0.1 }}
+                  error={!valid}
+                />
+                <TextField
+                  label="Maximum wait (seconds)"
+                  type="number"
+                  value={maximum}
+                  onChange={(event) => setMaximum(event.target.value)}
+                  inputProps={{ min: 0.1, max: 86400, step: 0.1 }}
+                  error={!valid}
+                />
+              </Box>
+              <Typography
+                variant="caption"
+                color={valid ? "text.secondary" : "error"}
+              >
+                {valid
+                  ? "Waits after each sound finishes. Equal values give a fixed interval. Replaces continuous looping when saved."
+                  : "Enter 0.1–86400 seconds, with maximum at least minimum."}
+              </Typography>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button type="submit">Done</Button>
+          <Button type="submit" disabled={!valid}>
+            Done
+          </Button>
         </DialogActions>
       </form>
     </Dialog>

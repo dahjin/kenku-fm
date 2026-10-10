@@ -15,12 +15,12 @@ import { Track, removeTrack, Playlist } from "./playlistsSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { TrackSettings } from "./TrackSettings";
 import { RootState } from "../../app/store";
+import { getPlaylistTags } from "./playlistTags";
+import { QuickTagEditor } from "./QuickTagEditor";
 import {
   playPause,
   removeTrackFromQueue,
-  startQueue,
   stopTrack,
-  updatePlayback,
 } from "./playlistPlaybackSlice";
 
 type TrackItemProps = {
@@ -30,6 +30,7 @@ type TrackItemProps = {
 };
 
 export function TrackItem({ track, playlist, onPlay }: TrackItemProps) {
+  const tracks = useSelector((state: RootState) => state.playlists.tracks);
   const isCurrentTrack = useSelector(
     (state: RootState) => state.playlistPlayback.track?.id === track.id,
   );
@@ -98,6 +99,11 @@ export function TrackItem({ track, playlist, onPlay }: TrackItemProps) {
         >
           <ListItemText
             primary={track.title}
+            secondary={
+              track.tags?.length
+                ? track.tags.map((tag) => `#${tag}`).join(" ")
+                : "No tags"
+            }
             sx={{
               ".MuiListItemText-primary": {
                 whiteSpace: "nowrap",
@@ -108,6 +114,10 @@ export function TrackItem({ track, playlist, onPlay }: TrackItemProps) {
             primaryTypographyProps={{
               typography: "body1",
             }}
+          />
+          <QuickTagEditor
+            track={track}
+            availableTags={getPlaylistTags(playlist, tracks)}
           />
           <IconButton
             aria-label={playing ? "pause" : "play"}
@@ -133,6 +143,7 @@ export function TrackItem({ track, playlist, onPlay }: TrackItemProps) {
       </Menu>
       <TrackSettings
         track={track}
+        availableTags={getPlaylistTags(playlist, tracks)}
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
       />

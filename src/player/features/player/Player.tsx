@@ -5,6 +5,7 @@ import Container from "@mui/material/Container";
 
 import { SoundboardPlayer } from "./SoundboardPlayer";
 import { PlaylistPlayer } from "./PlaylistPlayer";
+import { ScenePlayer } from "./ScenePlayer";
 
 type PlayerProps = {
   onPlaylistNext: () => void;
@@ -26,6 +27,7 @@ export function Player({
         bottom: 16,
         left: "50%",
         transform: "translateX(-50%)",
+        zIndex: 10,
       }}
       maxWidth="md"
     >
@@ -38,6 +40,7 @@ export function Player({
           p: 2,
         }}
       >
+        <ScenePlayer />
         <SoundboardPlayer onSoundboardStop={onSoundboardStop} />
         <PlaylistPlayer
           onPlaylistNext={onPlaylistNext}

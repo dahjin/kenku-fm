@@ -1,8 +1,10 @@
 import React, { useEffect } from "react";
 
 import { Track } from "./playlistsSlice";
+import { chooseSmartTrack, smartShuffleEnabled } from "./smartShuffle";
+import { getFilteredTracks } from "./playlistTags";
 
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector, useStore } from "react-redux";
 import { RootState } from "../../app/store";
 import {
   playPause,
@@ -29,9 +31,10 @@ export function PlaylistRemote({
   const playlists = useSelector((state: RootState) => state.playlists);
   const playback = useSelector((state: RootState) => state.playlistPlayback);
   const playbackShuffle = useSelector(
-    (state: RootState) => state.playlistPlayback.shuffle
+    (state: RootState) => state.playlistPlayback.shuffle,
   );
   const dispatch = useDispatch();
+  const store = useStore<RootState>();
 
   useEffect(() => {
     window.player.on("PLAYER_REMOTE_PLAYLIST_PLAY", (args) => {
@@ -39,11 +42,19 @@ export function PlaylistRemote({
       if (id in playlists.tracks) {
         const track = playlists.tracks[id];
         // Find playlist assosiated with this track and start a queue
-        for (let playlist of Object.values(playlists.playlists.byId)) {
+        for (const playlist of Object.values(playlists.playlists.byId)) {
           const tracks = [...playlist.tracks];
           if (tracks.includes(track.id)) {
+            if (
+              !getFilteredTracks(playlist, playlists.tracks).includes(track.id)
+            )
+              return;
             dispatch(
-              startQueue({ tracks, trackId: track.id, playlistId: playlist.id })
+              startQueue({
+                tracks,
+                trackId: track.id,
+                playlistId: playlist.id,
+              }),
             );
             break;
           }
@@ -52,14 +63,26 @@ export function PlaylistRemote({
       } else if (id in playlists.playlists.byId) {
         const playlist = playlists.playlists.byId[id];
         const tracks = [...playlist.tracks];
-        const trackIndex = playbackShuffle
-          ? Math.floor(Math.random() * tracks.length)
-          : 0;
-        const trackId = tracks[trackIndex];
+        const matching = getFilteredTracks(playlist, playlists.tracks);
+        const current = store.getState().playlistPlayback;
+        const trackId = smartShuffleEnabled(
+          playlist,
+          current.shuffle,
+          current.repeat,
+        )
+          ? chooseSmartTrack(
+              matching,
+              playlists.tracks,
+              playlist,
+              current.recentByPlaylist?.[playlist.id],
+            )
+          : matching[
+              current.shuffle ? Math.floor(Math.random() * matching.length) : 0
+            ];
         const track = playlists.tracks[trackId];
         if (track) {
-          onPlay(track);
           dispatch(startQueue({ tracks, trackId, playlistId: playlist.id }));
+          onPlay(track);
         }
       }
     });
@@ -67,7 +90,7 @@ export function PlaylistRemote({
     return () => {
       window.player.removeAllListeners("PLAYER_REMOTE_PLAYLIST_PLAY");
     };
-  }, [onPlay, playlists, playbackShuffle]);
+  }, [onPlay, playlists, playbackShuffle, store]);
 
   useEffect(() => {
     window.player.on("PLAYER_REMOTE_PLAYLIST_PLAYBACK_REQUEST", () => {
@@ -98,7 +121,7 @@ export function PlaylistRemote({
 
     return () => {
       window.player.removeAllListeners(
-        "PLAYER_REMOTE_PLAYLIST_PLAYBACK_REQUEST"
+        "PLAYER_REMOTE_PLAYLIST_PLAYBACK_REQUEST",
       );
     };
   }, [playback]);
@@ -107,7 +130,7 @@ export function PlaylistRemote({
     window.player.on("PLAYER_REMOTE_PLAYLIST_GET_ALL_REQUEST", () => {
       window.player.playlistGetAllReply({
         playlists: playlists.playlists.allIds.map(
-          (id) => playlists.playlists.byId[id]
+          (id) => playlists.playlists.byId[id],
         ),
         tracks: Object.values(playlists.tracks),
       });
@@ -115,7 +138,7 @@ export function PlaylistRemote({
 
     return () => {
       window.player.removeAllListeners(
-        "PLAYER_REMOTE_PLAYLIST_GET_ALL_REQUEST"
+        "PLAYER_REMOTE_PLAYLIST_GET_ALL_REQUEST",
       );
     };
   }, [playlists]);
@@ -130,12 +153,6 @@ export function PlaylistRemote({
     window.player.on("PLAYER_REMOTE_PLAYLIST_PLAYBACK_PAUSE", () => {
       if (playback.playback) {
         dispatch(playPause(false));
-      }
-    });
-
-    window.player.on("PLAYER_REMOTE_PLAYLIST_PLAYBACK_SEEK", (args) => {
-      const to = args[0];
-      if (playback.playback) {
       }
     });
 
@@ -183,13 +200,13 @@ export function PlaylistRemote({
     return () => {
       window.player.removeAllListeners("PLAYER_REMOTE_PLAYLIST_PLAYBACK_MUTE");
       window.player.removeAllListeners(
-        "PLAYER_REMOTE_PLAYLIST_PLAYBACK_VOLUME"
+        "PLAYER_REMOTE_PLAYLIST_PLAYBACK_VOLUME",
       );
       window.player.removeAllListeners(
-        "PLAYER_REMOTE_PLAYLIST_PLAYBACK_SHUFFLE"
+        "PLAYER_REMOTE_PLAYLIST_PLAYBACK_SHUFFLE",
       );
       window.player.removeAllListeners(
-        "PLAYER_REMOTE_PLAYLIST_PLAYBACK_REPEAT"
+        "PLAYER_REMOTE_PLAYLIST_PLAYBACK_REPEAT",
       );
     };
   }, []);
@@ -211,7 +228,7 @@ export function PlaylistRemote({
 
     return () => {
       window.player.removeAllListeners(
-        "PLAYER_REMOTE_PLAYLIST_PLAYBACK_PREVIOUS"
+        "PLAYER_REMOTE_PLAYLIST_PLAYBACK_PREVIOUS",
       );
     };
   }, [onPrevious]);

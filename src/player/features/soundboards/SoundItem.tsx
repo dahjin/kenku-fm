@@ -17,7 +17,6 @@ import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";
 import styled from "@mui/material/styles/styled";
 import Typography from "@mui/material/Typography";
-import useMediaQuery from "@mui/material/useMediaQuery";
 
 import { RootState } from "../../app/store";
 import { Sound, Soundboard, editSound, removeSound } from "./soundboardsSlice";
@@ -49,6 +48,9 @@ export function SoundItem({ id, soundboard, onPlay, onStop }: SoundItemProps) {
   const sound = useSelector((state: RootState) => state.soundboards.sounds[id]);
   const playing = useSelector(
     (state: RootState) => sound.id in state.soundboardPlayback.playback,
+  );
+  const waiting = useSelector(
+    (state: RootState) => state.soundboardPlayback.playback[id]?.waiting,
   );
   const dispatch = useDispatch();
 
@@ -162,6 +164,21 @@ export function SoundItem({ id, soundboard, onPlay, onStop }: SoundItemProps) {
                 <MoreVert />
               </IconButton>
             </Stack>
+            {sound.repeatInterval && (
+              <Typography
+                variant="caption"
+                color={playing ? "primary" : "text.secondary"}
+                sx={{ position: "relative", pointerEvents: "none" }}
+              >
+                {waiting
+                  ? "Waiting · "
+                  : playing
+                    ? "Repeating · "
+                    : "Random repeat · "}
+                {sound.repeatInterval.minSeconds}–
+                {sound.repeatInterval.maxSeconds}s
+              </Typography>
+            )}
             <Stack
               direction="row"
               spacing={2}
