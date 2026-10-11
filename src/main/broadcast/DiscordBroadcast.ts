@@ -1,11 +1,18 @@
 import { BrowserWindow, ipcMain } from "electron";
-import { ChannelType, Client, Events, GatewayIntentBits } from "discord.js";
+import {
+  ActivityType,
+  ChannelType,
+  Client,
+  Events,
+  GatewayIntentBits,
+} from "discord.js";
 import {
   createAudioPlayer,
   getVoiceConnection,
   joinVoiceChannel,
   NoSubscriberBehavior,
 } from "@discordjs/voice";
+import { normalizeNowPlaying } from "../../common/discordPresence";
 
 type VoiceChannel = {
   id: string;
@@ -23,6 +30,7 @@ type Guild = {
 export class DiscordBroadcast {
   window: BrowserWindow;
   client?: Client;
+  nowPlaying?: string;
   audioPlayer = createAudioPlayer({
     behaviors: {
       noSubscriber: NoSubscriberBehavior.Play,
@@ -36,6 +44,7 @@ export class DiscordBroadcast {
     ipcMain.on("DISCORD_DISCONNECT", this._handleDisconnect);
     ipcMain.on("DISCORD_JOIN_CHANNEL", this._handleJoinChannel);
     ipcMain.on("DISCORD_LEAVE_CHANNEL", this._handleLeaveChannel);
+    ipcMain.on("DISCORD_NOW_PLAYING", this._handleNowPlaying);
     this.audioPlayer.on("error", this._handleBroadcastError);
   }
 
@@ -44,6 +53,7 @@ export class DiscordBroadcast {
     ipcMain.off("DISCORD_DISCONNECT", this._handleDisconnect);
     ipcMain.off("DISCORD_JOIN_CHANNEL", this._handleJoinChannel);
     ipcMain.off("DISCORD_LEAVE_CHANNEL", this._handleLeaveChannel);
+    ipcMain.off("DISCORD_NOW_PLAYING", this._handleNowPlaying);
     this.client?.destroy();
     this.client = undefined;
   }
@@ -64,6 +74,7 @@ export class DiscordBroadcast {
         intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
       });
       this.client.once(Events.ClientReady, async () => {
+        this._updatePresence();
         event.reply("DISCORD_READY");
         event.reply("MESSAGE", "Connected");
         const rawGuilds = await this.client.guilds.fetch();
@@ -108,8 +119,23 @@ export class DiscordBroadcast {
     event.reply("DISCORD_DISCONNECTED");
     event.reply("DISCORD_GUILDS", []);
     event.reply("DISCORD_CHANNEL_JOINED", "local");
-    this.client.destroy();
+    this.client?.destroy();
     this.client = undefined;
+  };
+
+  _handleNowPlaying = (_event: Electron.IpcMainEvent, title?: string) => {
+    this.nowPlaying = normalizeNowPlaying(title);
+    this._updatePresence();
+  };
+
+  _updatePresence = () => {
+    if (!this.client?.user) return;
+    this.client.user.setPresence({
+      activities: this.nowPlaying
+        ? [{ name: this.nowPlaying, type: ActivityType.Listening }]
+        : [],
+      status: "online",
+    });
   };
 
   _handleJoinChannel = async (
@@ -158,10 +184,11 @@ export class DiscordBroadcast {
     event: Electron.IpcMainEvent,
     channelId: string,
   ) => {
-    const channel = await this.client.channels.fetch(channelId);
+    const channel = await this.client?.channels.fetch(channelId);
+    if (!channel) return;
     if (channel.type === ChannelType.GuildVoice) {
       const connection = getVoiceConnection(channel.guild.id);
-      connection.destroy();
+      connection?.destroy();
     }
     event.reply("DISCORD_CHANNEL_LEFT", channelId);
   };

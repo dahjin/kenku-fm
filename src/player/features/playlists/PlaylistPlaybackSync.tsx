@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 
 import { useSelector } from "react-redux";
 import { RootState } from "../../app/store";
+import { nowPlayingTitle } from "../../../common/discordPresence";
 
 type PlaylistPlaybackSyncProps = {
   onMute: (muted: boolean) => void;
@@ -17,14 +18,14 @@ export function PlaylistPlaybackSync({
   onVolume,
 }: PlaylistPlaybackSyncProps) {
   const volume = useSelector(
-    (state: RootState) => state.playlistPlayback.volume
+    (state: RootState) => state.playlistPlayback.volume,
   );
   const muted = useSelector((state: RootState) => state.playlistPlayback.muted);
   const playing = useSelector(
-    (state: RootState) => state.playlistPlayback.playing
+    (state: RootState) => state.playlistPlayback.playing,
   );
   const playbackTrack = useSelector(
-    (state: RootState) => state.playlistPlayback.track
+    (state: RootState) => state.playlistPlayback.track,
   );
 
   useEffect(() => {
@@ -38,6 +39,19 @@ export function PlaylistPlaybackSync({
   useEffect(() => {
     onPauseResume(playing);
   }, [playing, onPauseResume, playbackTrack]);
+
+  useEffect(() => {
+    window.player.setDiscordNowPlaying(
+      nowPlayingTitle(playing, playbackTrack?.title),
+    );
+  }, [playing, playbackTrack?.title]);
+
+  useEffect(
+    () => () => {
+      window.player.setDiscordNowPlaying(undefined);
+    },
+    [],
+  );
 
   return <></>;
 }
