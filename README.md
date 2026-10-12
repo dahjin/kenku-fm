@@ -8,7 +8,8 @@ This personal fork adds [tag-filtered and smart playlist playback](docs/playlist
 [native Wayland file imports](docs/wayland-file-drops.md). Playlist music can
 also appear as the Discord bot's [Now Playing activity](docs/discord-now-playing.md),
 and a [compact display mode](docs/compact-mode.md) fits the library into smaller
-windows.
+windows. The versioned [Remote API](docs/remote-api.md) exposes scenes, tags,
+sound groups, playback state, and live events to local automation clients.
 
 Kenku FM is a desktop application for Windows, MacOS and Linux designed to be the easiest way to share music in a Discord voice call.
 
