@@ -1,0 +1,133 @@
+name: Build Kenku FM fork
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "feature/**"
+    tags:
+      - "v*"
+
+concurrency:
+  group: kenku-fm-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Test and type-check
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --non-interactive --frozen-lockfile
+
+      - name: Test and type-check
+        run: yarn check:ci
+
+      - name: Check release version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: yarn check:release-version "$GITHUB_REF_NAME"
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: check
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x64
+            runner: ubuntu-24.04
+            platform: linux
+            arch: x64
+            artifact: kenku-fm-linux-x64
+            output: out/make/zip/linux/x64/*.zip
+          - name: Windows x64
+            runner: windows-2025
+            platform: win32
+            arch: x64
+            artifact: kenku-fm-windows-x64
+            output: out/make/zip/win32/x64/*.zip
+          - name: macOS Intel
+            runner: macos-15-intel
+            platform: darwin
+            arch: x64
+            artifact: kenku-fm-macos-x64
+            output: out/make/zip/darwin/x64/*.zip
+          - name: macOS Apple Silicon
+            runner: macos-15
+            platform: darwin
+            arch: arm64
+            artifact: kenku-fm-macos-arm64
+            output: out/make/zip/darwin/arm64/*.zip
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --non-interactive --frozen-lockfile
+
+      - name: Install Linux archive tool
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes zip
+
+      - name: Build ZIP
+        run: yarn make:zip --platform=${{ matrix.platform }} --arch=${{ matrix.arch }}
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}-${{ github.sha }}
+          path: ${{ matrix.output }}
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish tagged release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packaged builds
+        uses: actions/download-artifact@v4
+        with:
+          pattern: kenku-fm-*-${{ github.sha }}
+          path: dist
+          merge-multiple: true
+
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/*.zip --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/*.zip \
+              --title "Kenku FM $GITHUB_REF_NAME" \
+              --generate-notes
+          fi

@@ -57,6 +57,39 @@ To make a production build run:
 
 `yarn make`
 
+To run the feature tests and TypeScript checks used by CI:
+
+`yarn check:ci`
+
+To create the same Linux x64 ZIP produced by CI:
+
+`yarn make:linux`
+
+The archive is written under `out/make/zip/linux/x64/`. On Arch Linux, install
+the archive tool first with `sudo pacman -S zip`.
+
+### Automated fork builds
+
+GitHub Actions tests the app and builds ZIP packages for Linux x64, Windows x64,
+macOS Intel, and macOS Apple Silicon on pull requests and pushes to `main` or
+`feature/**` branches. Each package is available from the workflow run's
+**Artifacts** section for 14 days.
+
+These are unsigned development builds. The workflow packages only assets
+tracked by this fork; it does not download Owlbear Rodeo's private background
+asset repository.
+
+Pushing a version tag creates a GitHub Release and attaches all four ZIP files.
+The tag must match the version in `package.json`:
+
+```bash
+git tag v1.9.0
+git push origin v1.9.0
+```
+
+The upstream signing workflow only runs in `owlbear-rodeo/kenku-fm` because it
+depends on Owlbear Rodeo's private runners, assets, and signing credentials.
+
 If you wish to add protected media playback support follow the build steps from the [Electron for Content Security](https://github.com/castlabs/electron-releases) repo.
 
 ## Stream Deck

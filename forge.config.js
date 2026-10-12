@@ -36,7 +36,7 @@ const config = {
     },
     {
       name: "@electron-forge/maker-zip",
-      platforms: ["linux", "darwin"],
+      platforms: ["linux", "darwin", "win32"],
     },
     {
       name: "@electron-forge/maker-rpm",

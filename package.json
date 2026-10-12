@@ -25,7 +25,12 @@
     "test:remote-api": "tsc --module commonjs --target es2020 --esModuleInterop --skipLibCheck --outDir dist/remote-api-tests tests/remoteApi.test.ts && node --test dist/remote-api-tests/tests/remoteApi.test.js",
     "test:compact-interaction": "env -u ELECTRON_RUN_AS_NODE electron tests/compactModeInteraction.cjs",
     "test:upload-interaction": "node tests/buildUpload.cjs && env -u ELECTRON_RUN_AS_NODE electron tests/uploadInteraction.cjs",
-    "test:features": "yarn test:playlist-tags && yarn test:playlist-quick-play && yarn test:linux-display && yarn test:sound-repeat && yarn test:playlist-crossfade && yarn test:sound-groups && yarn test:scenes && yarn test:smart-shuffle && yarn test:audio-file-drop && yarn test:audio-drop && yarn test:discord-presence && yarn test:display-density && yarn test:remote-api"
+    "test:features": "yarn test:playlist-tags && yarn test:playlist-quick-play && yarn test:linux-display && yarn test:sound-repeat && yarn test:playlist-crossfade && yarn test:sound-groups && yarn test:scenes && yarn test:smart-shuffle && yarn test:audio-file-drop && yarn test:audio-drop && yarn test:discord-presence && yarn test:display-density && yarn test:remote-api",
+    "typecheck": "tsc --noEmit",
+    "check:ci": "yarn test:features && yarn typecheck",
+    "make:zip": "env-cmd electron-forge make --targets=@electron-forge/maker-zip",
+    "make:linux": "env-cmd electron-forge make --platform=linux --arch=x64 --targets=@electron-forge/maker-zip",
+    "check:release-version": "node scripts/checkReleaseVersion.cjs"
   },
   "keywords": [],
   "author": {
