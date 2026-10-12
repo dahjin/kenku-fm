@@ -79,17 +79,18 @@ the archive tool first with `sudo pacman -S zip`.
 ### Automated fork builds
 
 The [fork build workflow](https://github.com/dahjin/kenku-fm/actions/workflows/build-fork.yaml)
-tests the app and builds ZIP packages for Linux x64, Windows x64,
-macOS Intel, and macOS Apple Silicon on pull requests and pushes to `main` or
-`feature/**` branches. Each package is available from the workflow run's
-**Artifacts** section for 14 days.
+tests the app and builds a Squirrel installer for Windows x64 plus ZIP packages
+for Linux x64, macOS Intel, and macOS Apple Silicon. It runs for pull requests,
+version tags, and manual dispatches. Each platform build is available from the
+workflow run's **Artifacts** section for 14 days.
 
-These are unsigned development builds. The workflow packages only assets
-tracked by this fork; it does not download Owlbear Rodeo's private background
-asset repository.
+These are unsigned development builds. The Windows artifact contains the `.exe`
+installer, `.nupkg` update package, and `RELEASES` metadata. The workflow
+packages only assets tracked by this fork; it does not download Owlbear Rodeo's
+private background asset repository.
 
-Pushing a version tag creates a GitHub Release and attaches all four ZIP files.
-The tag must match the version in `package.json`:
+Pushing a version tag creates a GitHub Release and attaches all platform
+distributables. The tag must match the version in `package.json`:
 
 ```bash
 git tag v1.9.0
