@@ -1,7 +1,7 @@
 {
   "name": "kenku-fm",
   "productName": "Kenku FM",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Online tabletop audio sharing for Discord",
   "main": "./.webpack/main",
   "scripts": {
@@ -22,9 +22,10 @@
     "test:audio-drop": "tsc --module commonjs --target es2020 --esModuleInterop --skipLibCheck --outDir dist/audio-drop-tests tests/audioDrop.test.ts src/player/preload.ts && node dist/audio-drop-tests/tests/audioDrop.test.js",
     "test:discord-presence": "tsc --module commonjs --target es2020 --esModuleInterop --skipLibCheck --outDir dist/discord-presence-tests tests/discordPresence.test.ts && node --test dist/discord-presence-tests/tests/discordPresence.test.js",
     "test:display-density": "tsc --module commonjs --target es2020 --esModuleInterop --skipLibCheck --outDir dist/display-density-tests tests/displayDensity.test.ts && node --test dist/display-density-tests/tests/displayDensity.test.js",
+    "test:remote-api": "tsc --module commonjs --target es2020 --esModuleInterop --skipLibCheck --outDir dist/remote-api-tests tests/remoteApi.test.ts && node --test dist/remote-api-tests/tests/remoteApi.test.js",
     "test:compact-interaction": "env -u ELECTRON_RUN_AS_NODE electron tests/compactModeInteraction.cjs",
     "test:upload-interaction": "node tests/buildUpload.cjs && env -u ELECTRON_RUN_AS_NODE electron tests/uploadInteraction.cjs",
-    "test:features": "yarn test:playlist-tags && yarn test:playlist-quick-play && yarn test:linux-display && yarn test:sound-repeat && yarn test:playlist-crossfade && yarn test:sound-groups && yarn test:scenes && yarn test:smart-shuffle && yarn test:audio-file-drop && yarn test:audio-drop && yarn test:discord-presence && yarn test:display-density"
+    "test:features": "yarn test:playlist-tags && yarn test:playlist-quick-play && yarn test:linux-display && yarn test:sound-repeat && yarn test:playlist-crossfade && yarn test:sound-groups && yarn test:scenes && yarn test:smart-shuffle && yarn test:audio-file-drop && yarn test:audio-drop && yarn test:discord-presence && yarn test:display-density && yarn test:remote-api"
   },
   "keywords": [],
   "author": {

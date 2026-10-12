@@ -24,6 +24,7 @@ import { useSoundboardPlayback } from "../features/soundboards/useSoundboardPlay
 import { SoundboardRemote } from "../features/soundboards/SoundboardRemote";
 import { SoundboardPlaybackSync } from "../features/soundboards/SoundboardPlaybackSync";
 import { CompactModeProvider } from "../common/CompactMode";
+import { RemoteV2 } from "../remote/RemoteV2";
 
 const WallPaper = styled("div")({
   position: "fixed",
@@ -117,6 +118,7 @@ export function App() {
         onVolume={playlist.volume}
       />
       <SoundboardRemote onPlay={soundboard.play} onStop={soundboard.stop} />
+      <RemoteV2 onPlaylistStop={playlist.stop} />
       <SoundboardPlaybackSync onSync={soundboard.sync} />
       <Snackbar
         open={Boolean(errorMessage)}
