@@ -24,6 +24,7 @@ import { RootState } from "../../app/store";
 import { editTrack, Track } from "./playlistsSlice";
 import { AudioSelector } from "../../common/AudioSelector";
 import { TagInput } from "./TagInput";
+import { AudioEffectsControls } from "../../common/AudioEffectsControls";
 
 type TrackSettingsProps = {
   track: Track;
@@ -56,6 +57,8 @@ export function TrackSettings({
   const [start, setStart] = useState("0");
   const [end, setEnd] = useState("");
   const [fade, setFade] = useState("");
+  const [lowPassHz, setLowPassHz] = useState<number | null>(null);
+  const [reverbMix, setReverbMix] = useState(0);
   const [duration, setDuration] = useState<number>();
   const playlistFade = useSelector((state: RootState) => {
     const playlist = state.playlists.playlists.allIds
@@ -75,6 +78,8 @@ export function TrackSettings({
       setFade(
         track.crossfadeSeconds == null ? "" : String(track.crossfadeSeconds),
       );
+      setLowPassHz(track.lowPassHz ?? null);
+      setReverbMix(track.reverbMix ?? 0);
     }
   }, [open, track.id]);
   useEffect(() => {
@@ -151,6 +156,8 @@ export function TrackSettings({
         startSeconds: Number(start),
         endSeconds: end === "" ? null : Number(end),
         crossfadeSeconds: fade === "" ? null : Number(fade),
+        lowPassHz,
+        reverbMix,
       }),
     );
     onClose();
@@ -160,6 +167,8 @@ export function TrackSettings({
     <Dialog
       open={open}
       onClose={onClose}
+      fullWidth
+      maxWidth="sm"
       // Stop key events from propagating to prevent the track drag and drop from stealing the space bar
       onKeyDown={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
@@ -436,6 +445,12 @@ export function TrackSettings({
               </Stack>
             </AccordionDetails>
           </Accordion>
+          <AudioEffectsControls
+            lowPassHz={lowPassHz}
+            reverbMix={reverbMix}
+            onLowPassChange={setLowPassHz}
+            onReverbChange={setReverbMix}
+          />
         </DialogContent>
         <DialogActions>
           <Button type="submit" disabled={!valid}>

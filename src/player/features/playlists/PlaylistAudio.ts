@@ -1,4 +1,9 @@
 import { Howl, HowlOptions } from "howler";
+import {
+  attachHowlAudioEffects,
+  AudioEffectGraph,
+  sameAudioEffects,
+} from "../../common/audioEffects";
 import { trackBounds } from "./trackMarkers";
 import type { Track } from "./playlistsSlice";
 
@@ -16,6 +21,7 @@ type Entry = {
   howl: Howl;
   loaded: boolean;
   soundId?: number;
+  effects?: AudioEffectGraph;
 };
 type Options = {
   next: () => Track | undefined;
@@ -73,12 +79,14 @@ export class PlaylistAudio {
       entry.track.url === track.url &&
       entry.track.startSeconds === track.startSeconds &&
       entry.track.endSeconds === track.endSeconds &&
-      entry.track.crossfadeSeconds === track.crossfadeSeconds
+      entry.track.crossfadeSeconds === track.crossfadeSeconds &&
+      sameAudioEffects(entry.track, track)
     );
   }
 
   private unload(entry?: Entry) {
     if (!entry) return;
+    entry.effects?.dispose();
     entry.howl.off();
     entry.howl.unload();
   }
@@ -187,6 +195,11 @@ export class PlaylistAudio {
     // Keep one Howler sound instance for its entire lifetime. Calling play()
     // without this ID on resume creates a new HTML5 audio node at time zero.
     entry.soundId = entry.howl.play();
+    entry.effects = attachHowlAudioEffects(
+      entry.howl,
+      entry.soundId,
+      entry.track,
+    );
     entry.howl.seek(this.bounds(entry).start, entry.soundId);
     if (!this.resumeOnLoad) entry.howl.pause(entry.soundId);
     this.options.onStart(

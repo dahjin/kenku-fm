@@ -168,6 +168,17 @@ test("filter changes discard a preloaded track before it can be played", () => {
   f.player.dispose();
 });
 
+test("audio effect changes replace a preloaded copy of the same track", () => {
+  const f = setup();
+  f.player.tick();
+  f.audio[1].load();
+  f.next({ ...b, lowPassHz: 1200, reverbMix: 0.25 });
+  f.player.tick();
+  assert.equal(f.audio[1].unloaded, true);
+  assert.equal(f.audio.length, 3);
+  f.player.dispose();
+});
+
 test("filter changes during loading at track end cannot play an excluded track", () => {
   const f = setup();
   f.audio[0].end();

@@ -4,8 +4,9 @@
 
 This personal fork adds [tag-filtered and smart playlist playback](docs/playlist-tags.md),
 [playlist crossfades](docs/playlist-crossfade.md), [scenes](docs/scenes.md),
-[random sound effects and groups](docs/sound-repeat.md), and
-[native Wayland file imports](docs/wayland-file-drops.md). Playlist music can
+[random sound effects and groups](docs/sound-repeat.md),
+[per-track and per-sound audio filters](docs/audio-filters.md), and [native
+Wayland file imports](docs/wayland-file-drops.md). Playlist music can
 also appear as the Discord bot's [Now Playing activity](docs/discord-now-playing.md),
 and a [compact display mode](docs/compact-mode.md) fits the library into smaller
 windows. The versioned [Remote API](docs/remote-api.md) exposes scenes, tags,
@@ -94,8 +95,8 @@ Pushing a version tag creates a GitHub Release and attaches all platform
 distributables. The tag must match the version in `package.json`:
 
 ```bash
-git tag v1.9.0
-git push origin v1.9.0
+git tag v1.10.0
+git push origin v1.10.0
 ```
 
 The upstream signing workflow only runs in `owlbear-rodeo/kenku-fm` because it

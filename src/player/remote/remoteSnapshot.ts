@@ -37,6 +37,8 @@ function buildLibrary(state: RootState): RemoteLibrary {
     startSeconds: track.startSeconds ?? 0,
     endSeconds: track.endSeconds ?? null,
     crossfadeSeconds: track.crossfadeSeconds ?? null,
+    lowPassHz: track.lowPassHz ?? null,
+    reverbMix: track.reverbMix ?? 0,
   }));
   const soundboards = state.soundboards.soundboards.allIds
     .map((id) => state.soundboards.soundboards.byId[id])
@@ -60,6 +62,8 @@ function buildLibrary(state: RootState): RemoteLibrary {
     fadeIn: sound.fadeIn,
     fadeOut: sound.fadeOut,
     repeatInterval: sound.repeatInterval ? { ...sound.repeatInterval } : null,
+    lowPassHz: sound.lowPassHz ?? null,
+    reverbMix: sound.reverbMix ?? 0,
   }));
   const scenes = state.scenes.allIds
     .map((id) => state.scenes.byId[id])

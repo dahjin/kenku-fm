@@ -104,6 +104,8 @@ export function useSoundboardPlayback(onError: (message: string) => void) {
         fadeOut: sound.fadeOut,
         loop: sound.loop,
         repeatInterval: sound.repeatInterval,
+        lowPassHz: sound.lowPassHz,
+        reverbMix: sound.reverbMix,
       });
 
       playback.once("load", (duration) => {

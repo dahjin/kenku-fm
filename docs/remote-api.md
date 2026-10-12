@@ -47,7 +47,9 @@ GET /v2/library
 
 Returns playlists, tracks, their tags and playback preferences, soundboards,
 sound groups, sounds, scenes, and scene tabs. References use stable IDs. Local
-media URLs and artwork paths are deliberately omitted.
+media URLs and artwork paths are deliberately omitted. Track and sound entries
+include `lowPassHz` (`null` when disabled) and `reverbMix` (0–1) so clients can
+display the saved audio treatment.
 
 ```bash
 curl http://127.0.0.1:3333/v2/library

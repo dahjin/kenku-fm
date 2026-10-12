@@ -10,6 +10,8 @@ export interface RemoteTrack {
   startSeconds: number;
   endSeconds: number | null;
   crossfadeSeconds: number | null;
+  lowPassHz: number | null;
+  reverbMix: number;
 }
 
 export interface RemotePlaylist {
@@ -32,6 +34,8 @@ export interface RemoteSound {
   fadeIn: number;
   fadeOut: number;
   repeatInterval: RepeatInterval | null;
+  lowPassHz: number | null;
+  reverbMix: number;
 }
 
 export interface RemoteSoundGroup {

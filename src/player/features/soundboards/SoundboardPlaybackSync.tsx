@@ -37,6 +37,11 @@ export function SoundboardPlaybackSync({
         const loop = state.repeatInterval ? false : state.loop;
         if (loop !== sound.options.loop) sound.loop(loop);
         sound.repeat(state.repeatInterval);
+        if (
+          state.lowPassHz !== sound.options.lowPassHz ||
+          state.reverbMix !== sound.options.reverbMix
+        )
+          sound.effects(state);
       }
     });
   }, [soundboards, active, onSync]);

@@ -11,11 +11,17 @@ import {
 class FakeSound extends EventEmitter {
   stopped = false;
   level = 1;
+  lowPassHz: number | null = null;
+  reverbMix = 0;
   async stop() {
     this.stopped = true;
   }
   volume(value: number) {
     this.level = value;
+  }
+  effects(value: SoundData) {
+    this.lowPassHz = value.lowPassHz ?? null;
+    this.reverbMix = value.reverbMix ?? 0;
   }
 }
 function setup(draws = [0, 0.99, 0]) {
@@ -165,12 +171,16 @@ test("editing the delay replaces a pending wait", (t) => {
   f.player.stop();
 });
 
-test("group audio follows the current member's volume", () => {
+test("group audio follows the current member's volume and filters", () => {
   const f = setup();
   f.player.start();
   f.sounds.a.volume = 0.3;
+  f.sounds.a.lowPassHz = 1000;
+  f.sounds.a.reverbMix = 0.4;
   f.player.update();
   assert.equal(f.instances[0].level, 0.3);
+  assert.equal(f.instances[0].lowPassHz, 1000);
+  assert.equal(f.instances[0].reverbMix, 0.4);
   f.player.stop();
 });
 

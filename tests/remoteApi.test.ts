@@ -34,6 +34,8 @@ function sourceState(): RootState {
           url: "/private/audio/uneasy.ogg",
           tags: ["tavern", "creepy"],
           frequency: 2,
+          lowPassHz: 1400,
+          reverbMix: 0.2,
         },
       },
     },
@@ -86,6 +88,8 @@ function sourceState(): RootState {
           volume: 0.7,
           fadeIn: 0,
           fadeOut: 0,
+          lowPassHz: 900,
+          reverbMix: 0.35,
         },
       },
     },
@@ -169,6 +173,10 @@ test("v2 snapshot exposes library and runtime features without local paths", () 
     "tavern",
   ]);
   assert.equal(value.library.soundboards[0].groups[0].title, "Blacksmith");
+  assert.equal(value.library.tracks[0].lowPassHz, 1400);
+  assert.equal(value.library.tracks[0].reverbMix, 0.2);
+  assert.equal(value.library.sounds[0].lowPassHz, 900);
+  assert.equal(value.library.sounds[0].reverbMix, 0.35);
   assert.equal(value.library.scenes[0].tabs[0].id, "tab-1");
   assert.equal(value.state.playlist.track?.progress, 12);
   assert.equal(value.state.scene?.tabTitle, "Night");
