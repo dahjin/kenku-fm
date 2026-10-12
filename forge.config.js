@@ -21,6 +21,7 @@ const config = {
       name: "@electron-forge/maker-squirrel",
       config: {
         name: "kenku_fm",
+        noMsi: true,
         setupIcon: path.join(__dirname, "src", "assets", "setup.ico"),
         loadingGif: path.join(__dirname, "src", "assets", "loading.gif"),
       },

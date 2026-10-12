@@ -4,9 +4,6 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    branches:
-      - main
-      - "feature/**"
     tags:
       - "v*"
 
@@ -55,24 +52,28 @@ jobs:
             runner: ubuntu-24.04
             platform: linux
             arch: x64
+            target: "@electron-forge/maker-zip"
             artifact: kenku-fm-linux-x64
             output: out/make/zip/linux/x64/*.zip
           - name: Windows x64
             runner: windows-2022
             platform: win32
             arch: x64
+            target: "@electron-forge/maker-squirrel"
             artifact: kenku-fm-windows-x64
-            output: out/make/zip/win32/x64/*.zip
+            output: out/make/squirrel.windows/x64/*
           - name: macOS Intel
             runner: macos-15-intel
             platform: darwin
             arch: x64
+            target: "@electron-forge/maker-zip"
             artifact: kenku-fm-macos-x64
             output: out/make/zip/darwin/x64/*.zip
           - name: macOS Apple Silicon
             runner: macos-15
             platform: darwin
             arch: arm64
+            target: "@electron-forge/maker-zip"
             artifact: kenku-fm-macos-arm64
             output: out/make/zip/darwin/arm64/*.zip
 
@@ -93,8 +94,8 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install --yes zip
 
-      - name: Build ZIP
-        run: yarn make:zip --platform=${{ matrix.platform }} --arch=${{ matrix.arch }}
+      - name: Build distributable
+        run: yarn make --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --targets=${{ matrix.target }}
 
       - name: Upload build
         uses: actions/upload-artifact@v7
@@ -126,9 +127,9 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" dist/*.zip --clobber
+            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
           else
-            gh release create "$GITHUB_REF_NAME" dist/*.zip \
+            gh release create "$GITHUB_REF_NAME" dist/* \
               --title "Kenku FM $GITHUB_REF_NAME" \
               --generate-notes
           fi
