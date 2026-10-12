@@ -52,9 +52,12 @@ jobs:
             runner: ubuntu-24.04
             platform: linux
             arch: x64
-            target: "@electron-forge/maker-zip"
+            target: "@electron-forge/maker-zip,@electron-forge/maker-deb,@electron-forge/maker-rpm"
             artifact: kenku-fm-linux-x64
-            output: out/make/zip/linux/x64/*.zip
+            output: |
+              out/make/zip/linux/x64/*.zip
+              out/make/deb/x64/*.deb
+              out/make/rpm/x64/*.rpm
           - name: Windows x64
             runner: windows-2022
             platform: win32
@@ -90,9 +93,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --non-interactive --frozen-lockfile
 
-      - name: Install Linux archive tool
+      - name: Install Linux packaging tools
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install --yes zip
+        run: sudo apt-get update && sudo apt-get install --yes zip fakeroot rpm
 
       - name: Build distributable
         run: yarn make --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --targets=${{ matrix.target }}

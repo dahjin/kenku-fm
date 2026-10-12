@@ -29,7 +29,7 @@
     "typecheck": "tsc --noEmit",
     "check:ci": "yarn test:features && yarn typecheck",
     "make:zip": "env-cmd electron-forge make --targets=@electron-forge/maker-zip",
-    "make:linux": "env-cmd electron-forge make --platform=linux --arch=x64 --targets=@electron-forge/maker-zip",
+    "make:linux": "env-cmd electron-forge make --platform=linux --arch=x64 --targets=@electron-forge/maker-zip,@electron-forge/maker-deb,@electron-forge/maker-rpm",
     "check:release-version": "node scripts/checkReleaseVersion.cjs"
   },
   "keywords": [],
