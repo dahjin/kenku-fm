@@ -69,20 +69,21 @@ To run the feature tests and TypeScript checks used by CI:
 
 `yarn check:ci`
 
-To create the same Linux x64 ZIP produced by CI:
+To create the same Linux x64 ZIP, Debian, and RPM packages produced by CI:
 
 `yarn make:linux`
 
-The archive is written under `out/make/zip/linux/x64/`. On Arch Linux, install
-the archive tool first with `sudo pacman -S zip`.
+The packages are written under `out/make/zip/linux/x64/`,
+`out/make/deb/x64/`, and `out/make/rpm/x64/`. On Arch Linux, install the
+packaging tools first with `sudo pacman -S zip dpkg fakeroot rpm-tools`.
 
 ### Automated fork builds
 
 The [fork build workflow](https://github.com/dahjin/kenku-fm/actions/workflows/build-fork.yaml)
-tests the app and builds a Squirrel installer for Windows x64 plus ZIP packages
-for Linux x64, macOS Intel, and macOS Apple Silicon. It runs for pull requests,
-version tags, and manual dispatches. Each platform build is available from the
-workflow run's **Artifacts** section for 14 days.
+tests the app and builds a Squirrel installer for Windows x64; ZIP, Debian, and
+RPM packages for Linux x64; and ZIP packages for macOS Intel and Apple Silicon.
+It runs for pull requests, version tags, and manual dispatches. Each platform
+build is available from the workflow run's **Artifacts** section for 14 days.
 
 These are unsigned development builds. The Windows artifact contains the `.exe`
 installer, `.nupkg` update package, and `RELEASES` metadata. The workflow
