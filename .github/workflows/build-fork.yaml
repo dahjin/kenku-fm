@@ -23,10 +23,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: yarn
@@ -58,7 +58,7 @@ jobs:
             artifact: kenku-fm-linux-x64
             output: out/make/zip/linux/x64/*.zip
           - name: Windows x64
-            runner: windows-2025
+            runner: windows-2022
             platform: win32
             arch: x64
             artifact: kenku-fm-windows-x64
@@ -78,10 +78,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: yarn
@@ -97,7 +97,7 @@ jobs:
         run: yarn make:zip --platform=${{ matrix.platform }} --arch=${{ matrix.arch }}
 
       - name: Upload build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}-${{ github.sha }}
           path: ${{ matrix.output }}
@@ -114,7 +114,7 @@ jobs:
 
     steps:
       - name: Download packaged builds
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: kenku-fm-*-${{ github.sha }}
           path: dist
