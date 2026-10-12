@@ -283,6 +283,25 @@ export const v2: (manager: PlayerManager) => FastifyPluginCallback =
     );
 
     fastify.put<{ Params: IdParamsType }>(
+      "/soundboards/:id/play",
+      { schema: { params: IdParams } },
+      (request, reply) => {
+        const snapshot = currentSnapshot(manager, reply);
+        if (!snapshot) return;
+        if (
+          !snapshot.library.soundboards.some(
+            ({ id }) => id === request.params.id,
+          )
+        )
+          return missing(reply, "Soundboard", request.params.id);
+        manager
+          .getView()
+          ?.send("PLAYER_REMOTE_SOUNDBOARD_PLAY", request.params.id);
+        accepted(reply);
+      },
+    );
+
+    fastify.put<{ Params: IdParamsType }>(
       "/sounds/:id/play",
       { schema: { params: IdParams } },
       (request, reply) => {
