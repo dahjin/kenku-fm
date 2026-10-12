@@ -34,7 +34,9 @@ with development packages available from
 
 ## Docs
 
-Docs on using Kenku FM can be found [here](https://www.kenku.fm/docs).
+Documentation for this fork is maintained in its
+[GitHub Wiki](https://github.com/dahjin/kenku-fm/wiki). The original Kenku FM
+documentation remains available at [kenku.fm/docs](https://www.kenku.fm/docs).
 
 ## How it Works
 
