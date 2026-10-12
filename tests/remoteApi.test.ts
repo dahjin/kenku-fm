@@ -229,6 +229,13 @@ test("v2 routes expose state and dispatch validated controls", async () => {
   assert.equal(group.statusCode, 200);
   assert.deepEqual(sent.pop(), ["PLAYER_REMOTE_SOUND_GROUP_START", "group-1"]);
 
+  const soundboard = await app.inject({
+    method: "PUT",
+    url: "/v2/soundboards/board-1/play",
+  });
+  assert.equal(soundboard.statusCode, 200);
+  assert.deepEqual(sent.pop(), ["PLAYER_REMOTE_SOUNDBOARD_PLAY", "board-1"]);
+
   const stop = await app.inject({ method: "DELETE", url: "/v2/playback" });
   assert.equal(stop.statusCode, 200);
   assert.deepEqual(sent.pop(), ["PLAYER_REMOTE_PLAYLIST_PLAYBACK_STOP"]);

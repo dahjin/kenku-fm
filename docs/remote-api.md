@@ -109,15 +109,17 @@ curl -X PUT http://127.0.0.1:3333/v2/playlists/PLAYLIST_ID/tags \
 
 ## Sounds and random groups
 
-| Method   | Path                      |
-| -------- | ------------------------- |
-| `PUT`    | `/v2/sounds/:id/play`     |
-| `DELETE` | `/v2/sounds/:id/playback` |
-| `PUT`    | `/v2/groups/:id/play`     |
-| `DELETE` | `/v2/groups/:id/playback` |
+| Method   | Path                       |
+| -------- | -------------------------- |
+| `PUT`    | `/v2/soundboards/:id/play` |
+| `PUT`    | `/v2/sounds/:id/play`      |
+| `DELETE` | `/v2/sounds/:id/playback`  |
+| `PUT`    | `/v2/groups/:id/play`      |
+| `DELETE` | `/v2/groups/:id/playback`  |
 
-Starting a group uses its saved sound choices and random interval. Only one
-sound from the group plays at a time.
+Playing a soundboard chooses one of its sounds at random. Starting a group uses
+its saved sound choices and random interval. Only one sound from the group plays
+at a time.
 
 ## Scenes
 
