@@ -29,6 +29,7 @@ import { Track } from "../playlists/playlistsSlice";
 import { SoundboardAdd } from "../soundboards/SoundboardAdd";
 import { SoundboardItem } from "../soundboards/SoundboardItem";
 import { Sound } from "../soundboards/soundboardsSlice";
+import { useCompactMode, useDisplayDensity } from "../../common/CompactMode";
 
 const PlaylistsLink = React.forwardRef<
   HTMLAnchorElement,
@@ -51,36 +52,42 @@ export function Home({ onPlayTrack, onPlaySound, onStopSound }: HomeProps) {
   const scenes = useSelector((state: RootState) => state.scenes);
   const playlists = useSelector((state: RootState) => state.playlists);
   const soundboards = useSelector((state: RootState) => state.soundboards);
+  const compact = useCompactMode();
+  const density = useDisplayDensity();
 
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("lg"));
 
   const playlistItems = playlists.playlists.allIds
-    .slice(0, isSmall ? 4 : 6)
+    .slice(0, isSmall ? density.homeItemLimitSmall : density.homeItemLimitLarge)
     .map((id) => playlists.playlists.byId[id]);
   const soundboardItems = soundboards.soundboards.allIds
-    .slice(0, isSmall ? 4 : 6)
+    .slice(0, isSmall ? density.homeItemLimitSmall : density.homeItemLimitLarge)
     .map((id) => soundboards.soundboards.byId[id]);
 
   const sceneItems = scenes.allIds
-    .slice(0, isSmall ? 4 : 6)
+    .slice(0, isSmall ? density.homeItemLimitSmall : density.homeItemLimitLarge)
     .map((id) => scenes.byId[id]);
   const [sceneAddOpen, setSceneAddOpen] = useState(false);
   const [playlistAddOpen, setPlaylistAddOpen] = useState(false);
   const [soundboardAddOpen, setSoundboardAddOpen] = useState(false);
+  const cardContentSx = {
+    p: density.cardContentPadding,
+    "&:last-child": { pb: density.cardContentPadding },
+  };
 
   return (
     <Container
       sx={{
         display: "flex",
         flexDirection: "column",
-        gap: 2,
-        mt: 4,
-        mb: "248px",
+        gap: density.pageGap,
+        mt: density.pageMarginTop,
+        mb: `${density.contentClearance}px`,
       }}
     >
       <Box>
-        <Typography variant="h4" component="h1">
+        <Typography variant={compact ? "h5" : "h4"} component="h1">
           Library
         </Typography>
         <Typography color="text.secondary" variant="body2">
@@ -88,9 +95,9 @@ export function Home({ onPlayTrack, onPlaySound, onStopSound }: HomeProps) {
         </Typography>
       </Box>
       <Card>
-        <CardContent>
+        <CardContent sx={cardContentSx}>
           <Stack gap={1} alignItems="center" direction="row">
-            <Typography variant="h5" component="div">
+            <Typography variant={compact ? "h6" : "h5"} component="div">
               Scenes
             </Typography>
             <Tooltip title="Add Scene">
@@ -112,11 +119,17 @@ export function Home({ onPlayTrack, onPlaySound, onStopSound }: HomeProps) {
             </Link>
           </Stack>
         </CardContent>
-        <CardContent>
+        <CardContent sx={cardContentSx}>
           {sceneItems.length ? (
-            <Grid container spacing={2}>
+            <Grid container spacing={density.gridSpacing}>
               {sceneItems.map((scene) => (
-                <Grid xs={12} sm={6} md={4} item key={scene.id}>
+                <Grid
+                  xs={compact ? 6 : 12}
+                  sm={compact ? 4 : 6}
+                  md={compact ? 3 : 4}
+                  item
+                  key={scene.id}
+                >
                   <SceneItem
                     scene={scene}
                     onSelect={(id) =>
@@ -135,14 +148,14 @@ export function Home({ onPlayTrack, onPlaySound, onStopSound }: HomeProps) {
         </CardContent>
       </Card>
       <Card>
-        <CardContent>
+        <CardContent sx={cardContentSx}>
           <Stack
             gap={1}
             justifyContent="space-between"
             alignItems="center"
             direction="row"
           >
-            <Typography variant="h5" component="div">
+            <Typography variant={compact ? "h6" : "h5"} component="div">
               Playlists
             </Typography>
             <Tooltip title="Add Playlist">
@@ -159,8 +172,8 @@ export function Home({ onPlayTrack, onPlaySound, onStopSound }: HomeProps) {
             </Link>
           </Stack>
         </CardContent>
-        <CardContent>
-          <Grid container spacing={2}>
+        <CardContent sx={cardContentSx}>
+          <Grid container spacing={density.gridSpacing}>
             {!playlistItems.length && (
               <Grid item xs={12}>
                 <Typography variant="body2" color="text.secondary">
@@ -170,7 +183,13 @@ export function Home({ onPlayTrack, onPlaySound, onStopSound }: HomeProps) {
               </Grid>
             )}
             {playlistItems.map((playlist) => (
-              <Grid xs={12} sm={6} md={4} item key={playlist.id}>
+              <Grid
+                xs={compact ? 6 : 12}
+                sm={compact ? 4 : 6}
+                md={compact ? 3 : 4}
+                item
+                key={playlist.id}
+              >
                 <PlaylistItem
                   quickControls
                   playlist={playlist}
@@ -183,14 +202,14 @@ export function Home({ onPlayTrack, onPlaySound, onStopSound }: HomeProps) {
         </CardContent>
       </Card>
       <Card>
-        <CardContent>
+        <CardContent sx={cardContentSx}>
           <Stack
             gap={1}
             justifyContent="space-between"
             alignItems="center"
             direction="row"
           >
-            <Typography variant="h5" component="div">
+            <Typography variant={compact ? "h6" : "h5"} component="div">
               Soundboards
             </Typography>
             <Tooltip title="Add Soundboard">
@@ -207,8 +226,8 @@ export function Home({ onPlayTrack, onPlaySound, onStopSound }: HomeProps) {
             </Link>
           </Stack>
         </CardContent>
-        <CardContent>
-          <Grid container spacing={2}>
+        <CardContent sx={cardContentSx}>
+          <Grid container spacing={density.gridSpacing}>
             {!soundboardItems.length && (
               <Grid item xs={12}>
                 <Typography variant="body2" color="text.secondary">
@@ -218,7 +237,13 @@ export function Home({ onPlayTrack, onPlaySound, onStopSound }: HomeProps) {
               </Grid>
             )}
             {soundboardItems.map((soundboard) => (
-              <Grid xs={12} sm={6} md={4} item key={soundboard.id}>
+              <Grid
+                xs={compact ? 6 : 12}
+                sm={compact ? 4 : 6}
+                md={compact ? 3 : 4}
+                item
+                key={soundboard.id}
+              >
                 <SoundboardItem
                   quickControls
                   onStop={onStopSound}

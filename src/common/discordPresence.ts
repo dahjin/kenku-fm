@@ -11,3 +11,7 @@ export function normalizeNowPlaying(title?: unknown) {
 export function nowPlayingTitle(playing: boolean, title?: string) {
   return playing ? normalizeNowPlaying(title) : undefined;
 }
+
+export function sharedNowPlayingTitle(enabled: boolean, title?: unknown) {
+  return enabled ? normalizeNowPlaying(title) : undefined;
+}

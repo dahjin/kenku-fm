@@ -17,10 +17,12 @@ import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";
 import styled from "@mui/material/styles/styled";
 import Typography from "@mui/material/Typography";
+import Tooltip from "@mui/material/Tooltip";
 
 import { RootState } from "../../app/store";
 import { Sound, Soundboard, editSound, removeSound } from "./soundboardsSlice";
 import { SoundSettings } from "./SoundSettings";
+import { useCompactMode } from "../../common/CompactMode";
 
 type SoundItemProps = {
   id: string;
@@ -53,6 +55,7 @@ export function SoundItem({ id, soundboard, onPlay, onStop }: SoundItemProps) {
     (state: RootState) => state.soundboardPlayback.playback[id]?.waiting,
   );
   const dispatch = useDispatch();
+  const compact = useCompactMode();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -134,9 +137,9 @@ export function SoundItem({ id, soundboard, onPlay, onStop }: SoundItemProps) {
       sx={{ padding: 0 }}
     >
       {playing ? (
-        <Stop sx={{ fontSize: "2.5rem" }} />
+        <Stop sx={{ fontSize: compact ? "2rem" : "2.5rem" }} />
       ) : (
-        <PlayArrow sx={{ fontSize: "2.5rem" }} />
+        <PlayArrow sx={{ fontSize: compact ? "2rem" : "2.5rem" }} />
       )}
     </IconButton>
   );
@@ -154,14 +157,39 @@ export function SoundItem({ id, soundboard, onPlay, onStop }: SoundItemProps) {
         <CardActionArea
           sx={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
         />
-        <CardContent sx={{ py: 2, ":last-child": { pb: 2 } }}>
+        <CardContent
+          sx={{
+            py: compact ? 1 : 2,
+            ":last-child": { pb: compact ? 1 : 2 },
+          }}
+        >
           <Stack direction="column" gap={0.5} justifyContent="space-between">
             <Stack direction="row" justifyContent="space-between">
-              <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
-                {sound.title}
-              </Typography>
-              <IconButton onClick={handleMenuClick}>
-                <MoreVert />
+              <Tooltip title={sound.title} enterDelay={400}>
+                <Typography
+                  variant={compact ? "body1" : "h6"}
+                  noWrap={!compact}
+                  sx={
+                    compact
+                      ? {
+                          flexGrow: 1,
+                          display: "-webkit-box",
+                          WebkitBoxOrient: "vertical",
+                          WebkitLineClamp: 2,
+                          overflow: "hidden",
+                          lineHeight: 1.25,
+                        }
+                      : { flexGrow: 1 }
+                  }
+                >
+                  {sound.title}
+                </Typography>
+              </Tooltip>
+              <IconButton
+                onClick={handleMenuClick}
+                size={compact ? "small" : "medium"}
+              >
+                <MoreVert fontSize={compact ? "small" : "medium"} />
               </IconButton>
             </Stack>
             {sound.repeatInterval && (
@@ -181,7 +209,7 @@ export function SoundItem({ id, soundboard, onPlay, onStop }: SoundItemProps) {
             )}
             <Stack
               direction="row"
-              spacing={2}
+              spacing={compact ? 1 : 2}
               justifyContent="center"
               alignItems="center"
             >

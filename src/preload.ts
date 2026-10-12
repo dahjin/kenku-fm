@@ -1,28 +1,33 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { IpcRendererEvent } from "electron";
 
 import { BrowserViewManagerPreload } from "./preload/managers/BrowserViewManagerPreload";
+import type { Guild } from "./renderer/features/output/outputSlice";
 
 const viewManager = new BrowserViewManagerPreload();
 
-type Channel =
-  | "ERROR"
-  | "FATAL_ERROR"
-  | "MESSAGE"
-  | "INFO"
-  | "DISCORD_READY"
-  | "DISCORD_DISCONNECTED"
-  | "DISCORD_GUILDS"
-  | "DISCORD_CHANNEL_JOINED"
-  | "DISCORD_CHANNEL_LEFT"
-  | "SHOW_CONTROLS"
-  | "BROWSER_VIEW_DID_NAVIGATE"
-  | "BROWSER_VIEW_TITLE_UPDATED"
-  | "BROWSER_VIEW_FAVICON_UPDATED"
-  | "BROWSER_VIEW_MEDIA_STARTED_PLAYING"
-  | "BROWSER_VIEW_MEDIA_PAUSED"
-  | "BROWSER_VIEW_NEW_TAB"
-  | "BROWSER_VIEW_CLOSE_TAB"
-  | "PLAYER_REMOTE_ENABLED";
+type ChannelArguments = {
+  ERROR: [message: string];
+  FATAL_ERROR: [message: string];
+  MESSAGE: [message: string];
+  INFO: [message: string];
+  DISCORD_READY: [];
+  DISCORD_DISCONNECTED: [];
+  DISCORD_GUILDS: [guilds: Guild[]];
+  DISCORD_CHANNEL_JOINED: [channelId: string];
+  DISCORD_CHANNEL_LEFT: [channelId: string];
+  SHOW_CONTROLS: [];
+  BROWSER_VIEW_DID_NAVIGATE: [viewId: number, url: string];
+  BROWSER_VIEW_TITLE_UPDATED: [viewId: number, title: string];
+  BROWSER_VIEW_FAVICON_UPDATED: [viewId: number, favicons: string[]];
+  BROWSER_VIEW_MEDIA_STARTED_PLAYING: [viewId: number];
+  BROWSER_VIEW_MEDIA_PAUSED: [viewId: number];
+  BROWSER_VIEW_NEW_TAB: [url?: string];
+  BROWSER_VIEW_CLOSE_TAB: [];
+  PLAYER_REMOTE_ENABLED: [enabled: boolean];
+};
+
+type Channel = keyof ChannelArguments;
 
 const validChannels: Channel[] = [
   "ERROR",
@@ -56,6 +61,12 @@ const api = {
   },
   disconnect: () => {
     ipcRenderer.send("DISCORD_DISCONNECT");
+  },
+  setDiscordNowPlayingEnabled: (enabled: boolean) => {
+    ipcRenderer.send("DISCORD_NOW_PLAYING_ENABLED", enabled);
+  },
+  setCompactMode: (enabled: boolean) => {
+    ipcRenderer.send("PLAYER_SET_COMPACT_MODE", enabled);
   },
   joinChannel: (channelId: string) => {
     ipcRenderer.send("DISCORD_JOIN_CHANNEL", channelId);
@@ -116,9 +127,13 @@ const api = {
   reload: (id: number) => {
     viewManager.reload(id);
   },
-  on: (channel: Channel, callback: (...args: any[]) => any) => {
+  on: <C extends Channel>(
+    channel: C,
+    callback: (args: ChannelArguments[C]) => void,
+  ) => {
     if (validChannels.includes(channel)) {
-      const newCallback = (_: any, ...args: any[]) => callback(args);
+      const newCallback = (_: IpcRendererEvent, ...args: unknown[]) =>
+        callback(args as ChannelArguments[C]);
       ipcRenderer.on(channel, newCallback);
     }
   },

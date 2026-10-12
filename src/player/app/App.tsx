@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import styled from "@mui/material/styles/styled";
 import Snackbar from "@mui/material/Snackbar";
@@ -23,6 +23,7 @@ import { Soundboard } from "../features/soundboards/Soundboard";
 import { useSoundboardPlayback } from "../features/soundboards/useSoundboardPlayback";
 import { SoundboardRemote } from "../features/soundboards/SoundboardRemote";
 import { SoundboardPlaybackSync } from "../features/soundboards/SoundboardPlaybackSync";
+import { CompactModeProvider } from "../common/CompactMode";
 
 const WallPaper = styled("div")({
   position: "fixed",
@@ -37,6 +38,18 @@ const WallPaper = styled("div")({
 
 export function App() {
   const [errorMessage, setErrorMessage] = useState<string>();
+  const [compactMode, setCompactMode] = useState(() =>
+    window.player.getCompactMode(),
+  );
+
+  useEffect(() => {
+    window.player.on("PLAYER_COMPACT_MODE_CHANGED", ([enabled]) => {
+      setCompactMode(enabled);
+    });
+    return () => {
+      window.player.removeAllListeners("PLAYER_COMPACT_MODE_CHANGED");
+    };
+  }, []);
 
   const handleError = useCallback((message: string) => {
     setErrorMessage(message);
@@ -47,7 +60,7 @@ export function App() {
   useScenePlayback(playlist, soundboard);
 
   return (
-    <>
+    <CompactModeProvider compact={compactMode}>
       <WallPaper />
       <Routes>
         <Route path="scenes" element={<Scenes />} />
@@ -113,6 +126,6 @@ export function App() {
       >
         <Alert severity="error">{errorMessage}</Alert>
       </Snackbar>
-    </>
+    </CompactModeProvider>
   );
 }

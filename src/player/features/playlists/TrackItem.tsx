@@ -22,6 +22,7 @@ import {
   removeTrackFromQueue,
   stopTrack,
 } from "./playlistPlaybackSlice";
+import { useCompactMode } from "../../common/CompactMode";
 
 type TrackItemProps = {
   track: Track;
@@ -38,6 +39,7 @@ export function TrackItem({ track, playlist, onPlay }: TrackItemProps) {
     (state: RootState) => state.playlistPlayback.playing && isCurrentTrack,
   );
   const dispatch = useDispatch();
+  const compact = useCompactMode();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -87,13 +89,13 @@ export function TrackItem({ track, playlist, onPlay }: TrackItemProps) {
         sx={{
           minWidth: 0,
           width: "100%",
-          m: 0.5,
+          m: compact ? 0.25 : 0.5,
           backgroundColor: "rgba(34, 38, 57, 0.8)",
         }}
       >
         <ListItemButton
           role={undefined}
-          sx={{ m: 0, borderRadius: "16px" }}
+          sx={{ m: 0, borderRadius: "16px", py: compact ? 0 : undefined }}
           dense
           selected={isCurrentTrack}
         >
@@ -112,7 +114,8 @@ export function TrackItem({ track, playlist, onPlay }: TrackItemProps) {
               },
             }}
             primaryTypographyProps={{
-              typography: "body1",
+              typography: compact ? "body2" : "body1",
+              title: track.title,
             }}
           />
           <QuickTagEditor
@@ -122,11 +125,19 @@ export function TrackItem({ track, playlist, onPlay }: TrackItemProps) {
           <IconButton
             aria-label={playing ? "pause" : "play"}
             onClick={handlePlayPause}
+            size={compact ? "small" : "medium"}
           >
-            {playing ? <Pause /> : <PlayArrow />}
+            {playing ? (
+              <Pause fontSize={compact ? "small" : "medium"} />
+            ) : (
+              <PlayArrow fontSize={compact ? "small" : "medium"} />
+            )}
           </IconButton>
-          <IconButton onClick={handleMenuClick}>
-            <MoreVert />
+          <IconButton
+            onClick={handleMenuClick}
+            size={compact ? "small" : "medium"}
+          >
+            <MoreVert fontSize={compact ? "small" : "medium"} />
           </IconButton>
         </ListItemButton>
       </Paper>

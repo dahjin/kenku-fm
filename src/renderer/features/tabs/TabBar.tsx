@@ -20,6 +20,9 @@ import {
 import Box from "@mui/material/Box";
 import List from "@mui/material/List";
 import Stack from "@mui/material/Stack";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import MenuIcon from "@mui/icons-material/MenuRounded";
 
 import { RootState } from "../../app/store";
 import { moveTab, Tab } from "./tabsSlice";
@@ -30,11 +33,23 @@ import { showWindowControls } from "../../common/showWindowControls";
 import { PlayerTab } from "../player/PlayerTab";
 import { AddTabButton } from "./AddTabButton";
 import { TabItem } from "./TabItem";
+import { setSidebarOpen } from "../settings/settingsSlice";
+import {
+  getDisplayDensity,
+  topBarHeight,
+} from "../../../common/displayDensity";
 
 export function TabBar() {
   const dispatch = useDispatch();
 
   const tabs = useSelector((state: RootState) => state.tabs);
+  const sidebarOpen = useSelector(
+    (state: RootState) => state.settings.sidebarOpen ?? true,
+  );
+  const compactMode = useSelector(
+    (state: RootState) => state.settings.compactMode,
+  );
+  const density = getDisplayDensity(compactMode);
 
   const pointerSensor = useSensor(PointerSensor, {
     activationConstraint: { distance: 10 },
@@ -119,16 +134,34 @@ export function TabBar() {
 
   return (
     <Stack
+      id="tab-bar"
       direction="row"
       component="div"
-      alignItems="start"
-      p={1}
+      alignItems="center"
+      p={density.tabBarPadding}
       ref={containerRef}
       onDoubleClick={(e) =>
         e.target === e.currentTarget && window.kenku.toggleMaximize()
       }
-      sx={{ WebkitAppRegion: "drag" }}
+      sx={{
+        height: topBarHeight,
+        minHeight: topBarHeight,
+        maxHeight: topBarHeight,
+        boxSizing: "border-box",
+        WebkitAppRegion: "drag",
+      }}
     >
+      {!sidebarOpen && (
+        <Tooltip title="Show sidebar">
+          <IconButton
+            aria-label="Show sidebar"
+            onClick={() => dispatch(setSidebarOpen(true))}
+            sx={{ WebkitAppRegion: "no-drag", flexShrink: 0 }}
+          >
+            <MenuIcon />
+          </IconButton>
+        </Tooltip>
+      )}
       <List
         disablePadding
         sx={{
@@ -141,7 +174,7 @@ export function TabBar() {
           maxWidth: "100%",
         }}
       >
-        <Box sx={{ width: "100%", minWidth: "120px" }}>
+        <Box sx={{ width: "100%", minWidth: density.tabMinWidth }}>
           <PlayerTab />
         </Box>
         <DndContext
@@ -158,7 +191,7 @@ export function TabBar() {
               <SortableItem
                 key={tab.id}
                 id={`${tab.id}`}
-                style={{ width: "100%", minWidth: "120px" }}
+                style={{ width: "100%", minWidth: density.tabMinWidth }}
               >
                 {getTabComponent(tab)}
               </SortableItem>

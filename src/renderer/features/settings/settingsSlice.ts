@@ -5,6 +5,9 @@ export type StreamingMode = "lowLatency" | "performance";
 
 export interface SettingsState {
   discordToken: string;
+  discordNowPlayingEnabled: boolean;
+  sidebarOpen: boolean;
+  compactMode: boolean;
   urlBarEnabled: boolean;
   remoteEnabled: boolean;
   remoteAddress: string;
@@ -17,6 +20,9 @@ export interface SettingsState {
 
 const initialState: SettingsState = {
   discordToken: "",
+  discordNowPlayingEnabled: true,
+  sidebarOpen: true,
+  compactMode: false,
   urlBarEnabled: true,
   remoteEnabled: false,
   remoteAddress: "127.0.0.1",
@@ -33,6 +39,15 @@ export const connectionSlice = createSlice({
   reducers: {
     setDiscordToken: (state, action: PayloadAction<string>) => {
       state.discordToken = action.payload;
+    },
+    setDiscordNowPlayingEnabled: (state, action: PayloadAction<boolean>) => {
+      state.discordNowPlayingEnabled = action.payload;
+    },
+    setSidebarOpen: (state, action: PayloadAction<boolean>) => {
+      state.sidebarOpen = action.payload;
+    },
+    setCompactMode: (state, action: PayloadAction<boolean>) => {
+      state.compactMode = action.payload;
     },
     setURLBarEnabled: (state, action: PayloadAction<boolean>) => {
       state.urlBarEnabled = action.payload;
@@ -63,6 +78,9 @@ export const connectionSlice = createSlice({
 
 export const {
   setDiscordToken,
+  setDiscordNowPlayingEnabled,
+  setSidebarOpen,
+  setCompactMode,
   setURLBarEnabled,
   setRemoteEnabled,
   setRemoteAddress,

@@ -4,6 +4,7 @@ import {
   DISCORD_ACTIVITY_MAX_LENGTH,
   normalizeNowPlaying,
   nowPlayingTitle,
+  sharedNowPlayingTitle,
 } from "../src/common/discordPresence";
 
 test("playing uses the editable track title as Discord activity", () => {
@@ -30,4 +31,10 @@ test("presence text is normalized and safely limited", () => {
     Array.from(normalizeNowPlaying(longTitle) ?? "").length,
     DISCORD_ACTIVITY_MAX_LENGTH,
   );
+});
+
+test("the sharing preference hides and restores the current activity", () => {
+  const title = normalizeNowPlaying("The Sleeping Dragon");
+  assert.equal(sharedNowPlayingTitle(false, title), undefined);
+  assert.equal(sharedNowPlayingTitle(true, title), "The Sleeping Dragon");
 });

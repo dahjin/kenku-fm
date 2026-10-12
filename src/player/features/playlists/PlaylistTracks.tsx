@@ -29,6 +29,7 @@ import { Playlist, Track, moveTrack } from "./playlistsSlice";
 import { moveQueueIfNeeded } from "./playlistPlaybackSlice";
 
 import { useHideScrollbar } from "../../../renderer/common/useHideScrollbar";
+import { useCompactMode, useDisplayDensity } from "../../common/CompactMode";
 
 type PlaylistTracksProps = {
   items: Track[];
@@ -42,6 +43,8 @@ export function PlaylistTracks({
   onPlay,
 }: PlaylistTracksProps) {
   const dispatch = useDispatch();
+  const compact = useCompactMode();
+  const density = useDisplayDensity();
 
   const pointerSensor = useSensor(PointerSensor, {
     activationConstraint: { distance: 10 },
@@ -93,7 +96,7 @@ export function PlaylistTracks({
         width: "100%",
         flex: 1,
         minHeight: 0,
-        px: 2,
+        px: density.pageHorizontalPadding,
       }}
       ref={scrollRef}
       {...hideScrollbar}
@@ -102,9 +105,9 @@ export function PlaylistTracks({
         sx={{
           width: "100%",
           minWidth: 360,
-          maxWidth: 720,
+          maxWidth: compact ? 960 : 720,
           margin: "0 auto",
-          marginBottom: "240px",
+          marginBottom: `${density.contentClearance}px`,
         }}
       >
         {items.length === 0 && (

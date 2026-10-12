@@ -25,6 +25,8 @@ import { RootState } from "../../app/store";
 import { useSelector, useDispatch } from "react-redux";
 import { setStatus } from "../connection/connectionSlice";
 import {
+  setCompactMode,
+  setDiscordNowPlayingEnabled,
   setDiscordToken,
   setExternalInputsEnabled,
   setMultipleInputsEnabled,
@@ -37,6 +39,7 @@ import {
   StreamingMode,
 } from "./settingsSlice";
 import { showWindowControls } from "../../common/showWindowControls";
+import { settingsPanelWidth } from "../../../common/displayDensity";
 
 type SettingsProps = {
   open: boolean;
@@ -60,6 +63,22 @@ export function Settings({ open, onClose }: SettingsProps) {
       window.kenku.disconnect();
     }
   }
+
+  function handleDiscordNowPlayingToggle() {
+    dispatch(setDiscordNowPlayingEnabled(!settings.discordNowPlayingEnabled));
+  }
+
+  useEffect(() => {
+    window.kenku.setDiscordNowPlayingEnabled(settings.discordNowPlayingEnabled);
+  }, [settings.discordNowPlayingEnabled]);
+
+  function handleCompactModeToggle() {
+    dispatch(setCompactMode(!settings.compactMode));
+  }
+
+  useEffect(() => {
+    window.kenku.setCompactMode(settings.compactMode);
+  }, [settings.compactMode]);
 
   useEffect(() => {
     if (settings.discordToken) {
@@ -121,6 +140,25 @@ export function Settings({ open, onClose }: SettingsProps) {
           "Connect"
         )}
       </Button>
+      <FormGroup>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={settings.discordNowPlayingEnabled}
+              onChange={handleDiscordNowPlayingToggle}
+            />
+          }
+          sx={{ marginLeft: "-8px" }}
+          label={
+            <Typography variant="caption">
+              Share current song on Discord bot
+            </Typography>
+          }
+        />
+      </FormGroup>
+      <Typography variant="caption" color="text.secondary">
+        Shows the playlist track as the bot&apos;s Listening activity.
+      </Typography>
       <Link
         href="https://kenku.fm/docs/getting-a-discord-token"
         variant="caption"
@@ -278,6 +316,28 @@ export function Settings({ open, onClose }: SettingsProps) {
     setClearingCache(false);
   }
 
+  const displaySettings = (
+    <Stack spacing={0.5}>
+      <FormGroup>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={settings.compactMode}
+              onChange={handleCompactModeToggle}
+            />
+          }
+          sx={{ marginLeft: "-8px" }}
+          label={
+            <Typography variant="caption">Compact player layout</Typography>
+          }
+        />
+      </FormGroup>
+      <Typography variant="caption" color="text.secondary">
+        Fits more playlists, scenes, tracks and sounds into smaller windows.
+      </Typography>
+    </Stack>
+  );
+
   const otherSettings = (
     <Stack spacing={1}>
       <FormGroup>
@@ -348,7 +408,19 @@ export function Settings({ open, onClose }: SettingsProps) {
   );
 
   return (
-    <Dialog fullScreen sx={{ width: 240 }} open={open} onClose={onClose}>
+    <Dialog
+      fullScreen
+      disableRestoreFocus
+      sx={{
+        width: `min(${settingsPanelWidth}px, 100vw)`,
+        "& .MuiDialog-paper": {
+          width: "100%",
+          maxWidth: "100%",
+        },
+      }}
+      open={open}
+      onClose={onClose}
+    >
       <DialogTitle
         sx={{
           textAlign: showWindowControls ? "left" : "right",
@@ -367,6 +439,9 @@ export function Settings({ open, onClose }: SettingsProps) {
         <DialogContentText>Streaming</DialogContentText>
         {streamingSettings}
         <Divider sx={{ mb: 2 }} />
+        <DialogContentText>Display</DialogContentText>
+        {displaySettings}
+        <Divider sx={{ my: 2 }} />
         <DialogContentText>Other</DialogContentText>
         {otherSettings}
         <Stack my={1}>

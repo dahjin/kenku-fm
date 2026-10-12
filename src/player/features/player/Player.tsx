@@ -6,6 +6,7 @@ import Container from "@mui/material/Container";
 import { SoundboardPlayer } from "./SoundboardPlayer";
 import { PlaylistPlayer } from "./PlaylistPlayer";
 import { ScenePlayer } from "./ScenePlayer";
+import { useDisplayDensity } from "../../common/CompactMode";
 
 type PlayerProps = {
   onPlaylistNext: () => void;
@@ -20,11 +21,12 @@ export function Player({
   onPlaylistSeek,
   onSoundboardStop,
 }: PlayerProps) {
+  const density = useDisplayDensity();
   return (
     <Container
       sx={{
         position: "fixed",
-        bottom: 16,
+        bottom: density.playerBottom,
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: 10,
@@ -37,7 +39,7 @@ export function Player({
           width: "100%",
           display: "flex",
           flexDirection: "column",
-          p: 2,
+          p: density.playerPadding,
         }}
       >
         <ScenePlayer />

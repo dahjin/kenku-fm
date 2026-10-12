@@ -50,6 +50,7 @@ import { TagFilters } from "../playlists/TagFilters";
 import { getFilteredTracks } from "../playlists/playlistTags";
 import { validRepeatInterval } from "../soundboards/repeatInterval";
 import { LayerPicker, SceneVolume } from "./SceneEditorControls";
+import { useCompactMode, useDisplayDensity } from "../../common/CompactMode";
 
 function newTab(title = "Day"): SceneTab {
   return { id: nanoid(), title, transitionSeconds: 2, sounds: [], groups: [] };
@@ -117,6 +118,8 @@ function RemoveLayer({
 }
 export function Scenes() {
   const dispatch = useDispatch();
+  const compact = useCompactMode();
+  const density = useDisplayDensity();
   const scenes = useSelector((state: RootState) => state.scenes);
   const active = useSelector((state: RootState) => state.scenePlayback.active);
   const playlists = useSelector((state: RootState) => state.playlists);
@@ -237,8 +240,19 @@ export function Scenes() {
     });
   }
   return (
-    <Container maxWidth="lg" sx={{ pt: 3, pb: "260px" }}>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+    <Container
+      maxWidth="lg"
+      sx={{
+        pt: compact ? 1.5 : 3,
+        pb: `${density.contentClearance}px`,
+      }}
+    >
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={1}
+        sx={{ mb: compact ? 1.5 : 3 }}
+      >
         <Tooltip title="Home">
           <IconButton component={RouterLink} to="/" aria-label="Home">
             <Back />
@@ -261,7 +275,7 @@ export function Scenes() {
             xs: "minmax(0, 1fr)",
             md: "200px minmax(0, 1fr)",
           },
-          gap: 3,
+          gap: compact ? 1.5 : 3,
           alignItems: "start",
         }}
       >

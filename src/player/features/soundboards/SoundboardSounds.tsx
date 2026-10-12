@@ -27,6 +27,7 @@ import { useDispatch } from "react-redux";
 import { Soundboard, Sound, moveSound } from "./soundboardsSlice";
 
 import { useHideScrollbar } from "../../../renderer/common/useHideScrollbar";
+import { useCompactMode, useDisplayDensity } from "../../common/CompactMode";
 
 type SoundboardSoundsProps = {
   soundboard: Soundboard;
@@ -40,6 +41,8 @@ export function SoundboardSounds({
   onStop,
 }: SoundboardSoundsProps) {
   const dispatch = useDispatch();
+  const compact = useCompactMode();
+  const density = useDisplayDensity();
 
   const pointerSensor = useSensor(PointerSensor, {
     activationConstraint: { distance: 10 },
@@ -84,8 +87,8 @@ export function SoundboardSounds({
         width: "100%",
         flex: 1,
         minHeight: 0,
-        pt: 1,
-        px: 2,
+        pt: compact ? 0.5 : 1,
+        px: density.pageHorizontalPadding,
       }}
       ref={scrollRef}
       {...hideScrollbar}
@@ -94,10 +97,10 @@ export function SoundboardSounds({
         sx={{
           width: "100%",
           margin: "0 auto",
-          marginBottom: "240px",
+          marginBottom: `${density.contentClearance}px`,
         }}
         container
-        spacing={2}
+        spacing={density.gridSpacing}
       >
         <DndContext
           sensors={sensors}
@@ -110,7 +113,15 @@ export function SoundboardSounds({
             strategy={rectSortingStrategy}
           >
             {soundboard.sounds.map((id) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} xl={2} key={id}>
+              <Grid
+                item
+                xs={compact ? 6 : 12}
+                sm={compact ? 4 : 6}
+                md={compact ? 3 : 4}
+                lg={compact ? 2 : 3}
+                xl={2}
+                key={id}
+              >
                 <SortableItem key={id} id={id}>
                   <SoundItem
                     id={id}

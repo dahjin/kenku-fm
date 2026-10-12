@@ -6,6 +6,7 @@ import {
   CardMedia,
   Typography,
 } from "@mui/material";
+import { useCompactMode, useDisplayDensity } from "./CompactMode";
 
 /** Shared artwork/title treatment, with quick controls outside the open button. */
 export function LibraryCard({
@@ -21,13 +22,15 @@ export function LibraryCard({
   action?: React.ReactNode;
   children?: React.ReactNode;
 }) {
+  const compact = useCompactMode();
+  const density = useDisplayDensity();
   return (
     <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <Box sx={{ position: "relative", flexShrink: 0 }}>
         <CardActionArea onClick={onOpen} aria-label={`Open ${title}`}>
           <CardMedia
             component="img"
-            height="200"
+            height={density.cardImageHeight}
             image={image}
             alt=""
             sx={{ pointerEvents: "none", bgcolor: "background.default" }}
@@ -47,7 +50,7 @@ export function LibraryCard({
             position: "absolute",
             bottom: 0,
             width: "100%",
-            p: 2,
+            p: density.cardContentPadding,
             display: "flex",
             alignItems: "center",
             gap: 1,
@@ -55,7 +58,7 @@ export function LibraryCard({
           }}
         >
           <Typography
-            variant="h5"
+            variant={compact ? "h6" : "h5"}
             component="div"
             sx={{
               flex: 1,
@@ -78,7 +81,7 @@ export function LibraryCard({
       </Box>
       {children && (
         <Box
-          sx={{ p: 1.5, flex: 1 }}
+          sx={{ p: compact ? 1 : 1.5, flex: 1 }}
           onPointerDown={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >

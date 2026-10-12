@@ -7,6 +7,7 @@ declare const PLAYER_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 
 export class PlayerManager {
   registeredViewId?: number;
+  compactMode = false;
   fastify: FastifyInstance | null = null;
   address = "127.0.0.1";
   port = "3333";
@@ -15,6 +16,8 @@ export class PlayerManager {
     ipcMain.on("PLAYER_GET_URL", this._handleGetURL);
     ipcMain.on("PLAYER_GET_PRELOAD_URL", this._handleGetPreloadURL);
     ipcMain.on("PLAYER_REGISTER_VIEW", this._handleRegisterView);
+    ipcMain.on("PLAYER_SET_COMPACT_MODE", this._handleSetCompactMode);
+    ipcMain.on("PLAYER_GET_COMPACT_MODE", this._handleGetCompactMode);
     ipcMain.on("PLAYER_START_REMOTE", this._handleStartRemote);
     ipcMain.on("PLAYER_STOP_REMOTE", this._handleStopRemote);
   }
@@ -23,6 +26,8 @@ export class PlayerManager {
     ipcMain.off("PLAYER_GET_URL", this._handleGetURL);
     ipcMain.off("PLAYER_GET_PRELOAD_URL", this._handleGetPreloadURL);
     ipcMain.off("PLAYER_REGISTER_VIEW", this._handleRegisterView);
+    ipcMain.off("PLAYER_SET_COMPACT_MODE", this._handleSetCompactMode);
+    ipcMain.off("PLAYER_GET_COMPACT_MODE", this._handleGetCompactMode);
     ipcMain.off("PLAYER_START_REMOTE", this._handleStartRemote);
     ipcMain.off("PLAYER_STOP_REMOTE", this._handleStopRemote);
     this.stopRemote();
@@ -78,7 +83,7 @@ export class PlayerManager {
   _handleStartRemote = (
     _: Electron.IpcMainEvent,
     address: string,
-    port: string
+    port: string,
   ) => this.startRemote(address, port);
 
   _handleStopRemote = () => this.stopRemote();
@@ -93,5 +98,22 @@ export class PlayerManager {
 
   _handleRegisterView = (_: Electron.IpcMainEvent, viewId: number) => {
     this.registeredViewId = viewId;
+    const view = this.getView();
+    const sendCompactMode = () =>
+      view?.send("PLAYER_COMPACT_MODE_CHANGED", this.compactMode);
+    if (view?.isLoadingMainFrame()) {
+      view.once("did-finish-load", sendCompactMode);
+    } else {
+      sendCompactMode();
+    }
+  };
+
+  _handleSetCompactMode = (_: Electron.IpcMainEvent, enabled: boolean) => {
+    this.compactMode = enabled === true;
+    this.getView()?.send("PLAYER_COMPACT_MODE_CHANGED", this.compactMode);
+  };
+
+  _handleGetCompactMode = (event: Electron.IpcMainEvent) => {
+    event.returnValue = this.compactMode;
   };
 }

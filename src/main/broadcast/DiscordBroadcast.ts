@@ -12,7 +12,10 @@ import {
   joinVoiceChannel,
   NoSubscriberBehavior,
 } from "@discordjs/voice";
-import { normalizeNowPlaying } from "../../common/discordPresence";
+import {
+  normalizeNowPlaying,
+  sharedNowPlayingTitle,
+} from "../../common/discordPresence";
 
 type VoiceChannel = {
   id: string;
@@ -31,6 +34,7 @@ export class DiscordBroadcast {
   window: BrowserWindow;
   client?: Client;
   nowPlaying?: string;
+  nowPlayingEnabled = true;
   audioPlayer = createAudioPlayer({
     behaviors: {
       noSubscriber: NoSubscriberBehavior.Play,
@@ -45,6 +49,7 @@ export class DiscordBroadcast {
     ipcMain.on("DISCORD_JOIN_CHANNEL", this._handleJoinChannel);
     ipcMain.on("DISCORD_LEAVE_CHANNEL", this._handleLeaveChannel);
     ipcMain.on("DISCORD_NOW_PLAYING", this._handleNowPlaying);
+    ipcMain.on("DISCORD_NOW_PLAYING_ENABLED", this._handleNowPlayingEnabled);
     this.audioPlayer.on("error", this._handleBroadcastError);
   }
 
@@ -54,6 +59,7 @@ export class DiscordBroadcast {
     ipcMain.off("DISCORD_JOIN_CHANNEL", this._handleJoinChannel);
     ipcMain.off("DISCORD_LEAVE_CHANNEL", this._handleLeaveChannel);
     ipcMain.off("DISCORD_NOW_PLAYING", this._handleNowPlaying);
+    ipcMain.off("DISCORD_NOW_PLAYING_ENABLED", this._handleNowPlayingEnabled);
     this.client?.destroy();
     this.client = undefined;
   }
@@ -128,12 +134,22 @@ export class DiscordBroadcast {
     this._updatePresence();
   };
 
+  _handleNowPlayingEnabled = (
+    _event: Electron.IpcMainEvent,
+    enabled: boolean,
+  ) => {
+    this.nowPlayingEnabled = enabled;
+    this._updatePresence();
+  };
+
   _updatePresence = () => {
     if (!this.client?.user) return;
+    const title = sharedNowPlayingTitle(
+      this.nowPlayingEnabled,
+      this.nowPlaying,
+    );
     this.client.user.setPresence({
-      activities: this.nowPlaying
-        ? [{ name: this.nowPlaying, type: ActivityType.Listening }]
-        : [],
+      activities: title ? [{ name: title, type: ActivityType.Listening }] : [],
       status: "online",
     });
   };

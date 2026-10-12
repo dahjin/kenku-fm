@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import Stack from "@mui/material/Stack";
 
 import { RootState } from "../../app/store";
@@ -34,7 +34,11 @@ export const safeURL = (urlString: string): URL | null => {
   }
 };
 
-export function Tabs() {
+type TabsProps = {
+  settingsOpen: boolean;
+};
+
+export function Tabs({ settingsOpen }: TabsProps) {
   const dispatch = useDispatch();
   const player = useSelector((state: RootState) => state.player);
   const tabs = useSelector((state: RootState) => state.tabs);
@@ -70,7 +74,7 @@ export function Tabs() {
         return;
       }
 
-      let validFavicons: string[] = [];
+      const validFavicons: string[] = [];
       if (Array.isArray(favicons)) {
         favicons.forEach((favicon) => {
           const url = safeURL(favicon);
@@ -181,7 +185,7 @@ export function Tabs() {
     };
   }, [player.tab.id, tabs]);
 
-  useEffect(() => {
+  const updateSelectedViewBounds = useCallback(() => {
     if (tabs.selectedTab) {
       const bounds = getBounds();
       window.kenku.setBrowserViewBounds(
@@ -192,7 +196,30 @@ export function Tabs() {
         bounds.height,
       );
     }
-  }, [settings.urlBarEnabled, isPlayer, tabs.selectedTab]);
+  }, [tabs.selectedTab]);
+
+  useEffect(() => {
+    updateSelectedViewBounds();
+  }, [
+    settings.urlBarEnabled,
+    settings.sidebarOpen,
+    settings.compactMode,
+    settingsOpen,
+    isPlayer,
+    updateSelectedViewBounds,
+  ]);
+
+  useEffect(() => {
+    const drawer = document.getElementById("action-drawer");
+    const controls = document.getElementById("controls");
+    if (!drawer || !controls) return;
+
+    const observer = new ResizeObserver(updateSelectedViewBounds);
+    observer.observe(drawer);
+    observer.observe(controls);
+
+    return () => observer.disconnect();
+  }, [updateSelectedViewBounds]);
 
   function handleURLChange(url: string) {
     dispatch(editTab({ id: tabs.selectedTab, url }));
@@ -206,7 +233,7 @@ export function Tabs() {
           viewId={selectedTab?.id || -1}
           url={selectedTab?.url || ""}
           onURLChange={handleURLChange}
-          disabled={!Boolean(selectedTab)}
+          disabled={!selectedTab}
         />
       )}
     </Stack>

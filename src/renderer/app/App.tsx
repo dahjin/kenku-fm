@@ -29,6 +29,7 @@ export function App() {
   const [message, setMessage] = useState<string>();
   const [error, setError] = useState<string>();
   const [fatalError, setFatalError] = useState<string>();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     window.kenku.on("MESSAGE", (args) => {
@@ -82,8 +83,12 @@ export function App() {
   return (
     <Stack direction="row">
       <WallPaper />
-      <ActionDrawer />
-      <Tabs />
+      <ActionDrawer
+        settingsOpen={settingsOpen}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onCloseSettings={() => setSettingsOpen(false)}
+      />
+      <Tabs settingsOpen={settingsOpen} />
       <Snackbar
         open={Boolean(message)}
         autoHideDuration={4000}

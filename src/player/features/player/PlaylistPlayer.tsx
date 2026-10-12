@@ -27,8 +27,7 @@ import {
   shuffle,
   repeat,
 } from "../playlists/playlistPlaybackSlice";
-
-const minWidthForLargeContext = 650;
+import { useCompactMode, useDisplayDensity } from "../../common/CompactMode";
 
 const TimeSlider = styled(Slider)({
   color: "#fff",
@@ -85,7 +84,9 @@ function Title() {
   const queue = useSelector((state: RootState) => state.playlistPlayback.queue);
   const track = useSelector((state: RootState) => state.playlistPlayback.track);
   const noTrack = track?.title === undefined;
-  const large = useMediaQuery(`(min-width: ${minWidthForLargeContext}px)`);
+  const compact = useCompactMode();
+  const density = useDisplayDensity();
+  const large = useMediaQuery(`(min-width: ${density.playerWideBreakpoint}px)`);
 
   return (
     <Box
@@ -98,7 +99,7 @@ function Title() {
       }}
     >
       <Typography
-        variant="body2"
+        variant={compact ? "caption" : "body2"}
         sx={{ width: "100%", textAlign: large ? undefined : "center" }}
         noWrap
         gutterBottom
@@ -122,6 +123,7 @@ function Controls({
   onPlaylistNext,
 }: Omit<PlaylistPlayerProps, "onPlaylistSeek">) {
   const dispatch = useDispatch();
+  const compact = useCompactMode();
   const playbackShuffle = useSelector(
     (state: RootState) => state.playlistPlayback.shuffle,
   );
@@ -164,7 +166,7 @@ function Controls({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        mt: -1,
+        mt: compact ? -0.5 : -1,
         flexGrow: 1,
       }}
     >
@@ -184,9 +186,9 @@ function Controls({
         disabled={disabled}
       >
         {playing ? (
-          <Pause sx={{ fontSize: "3rem" }} />
+          <Pause sx={{ fontSize: compact ? "2.25rem" : "3rem" }} />
         ) : (
-          <PlayArrow sx={{ fontSize: "3rem" }} />
+          <PlayArrow sx={{ fontSize: compact ? "2.25rem" : "3rem" }} />
         )}
       </IconButton>
       <IconButton
@@ -211,7 +213,9 @@ function Controls({
 
 function Volume() {
   const dispatch = useDispatch();
-  const large = useMediaQuery(`(min-width: ${minWidthForLargeContext}px)`);
+  const compact = useCompactMode();
+  const density = useDisplayDensity();
+  const large = useMediaQuery(`(min-width: ${density.playerWideBreakpoint}px)`);
 
   const muted = useSelector((state: RootState) => state.playlistPlayback.muted);
   const volume = useSelector(
@@ -234,7 +238,7 @@ function Volume() {
 
   return (
     <Stack
-      spacing={2}
+      spacing={compact ? 1 : 2}
       direction="row"
       sx={{ mb: 1, px: 1, width: large ? "30%" : "100%" }}
       alignItems="center"
@@ -319,7 +323,8 @@ export function PlaylistPlayer({
   onPlaylistPrevious,
   onPlaylistSeek,
 }: PlaylistPlayerProps) {
-  const large = useMediaQuery(`(min-width: ${minWidthForLargeContext}px)`);
+  const density = useDisplayDensity();
+  const large = useMediaQuery(`(min-width: ${density.playerWideBreakpoint}px)`);
 
   if (large) {
     return (

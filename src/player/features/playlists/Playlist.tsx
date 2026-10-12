@@ -31,6 +31,7 @@ import { getFilteredTracks, getPlaylistTags } from "./playlistTags";
 import { TagFilters } from "./TagFilters";
 import { PlaylistTracks } from "./PlaylistTracks";
 import { TrackAdd } from "./TrackAdd";
+import { useCompactMode, useDisplayDensity } from "../../common/CompactMode";
 
 type PlaylistProps = {
   onPlay: (track: Track) => void;
@@ -42,6 +43,8 @@ export function Playlist({ onPlay }: PlaylistProps) {
   const playlists = useSelector((state: RootState) => state.playlists);
   const { playlistId } = useParams();
   const playlist = playlists.playlists.byId[playlistId];
+  const compact = useCompactMode();
+  const density = useDisplayDensity();
 
   const [addOpen, setAddOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -140,7 +143,7 @@ export function Playlist({ onPlay }: PlaylistProps) {
           }}
         />
         <Stack
-          p={4}
+          p={density.pageHeaderPadding}
           direction="row"
           justifyContent="space-between"
           alignItems="center"
@@ -149,7 +152,12 @@ export function Playlist({ onPlay }: PlaylistProps) {
           <IconButton onClick={() => navigate(-1)} sx={{ mr: "40px" }}>
             <Back />
           </IconButton>
-          <Typography sx={{ zIndex: 1 }} variant="h3" noWrap>
+          <Typography
+            sx={{ zIndex: 1 }}
+            variant={compact ? "h4" : "h3"}
+            noWrap
+            title={playlist.title}
+          >
             {playlist.title}
           </Typography>
           <Stack direction="row">
@@ -166,7 +174,7 @@ export function Playlist({ onPlay }: PlaylistProps) {
         <Box
           sx={{
             zIndex: 1,
-            px: 3,
+            px: compact ? 1.5 : 3,
             pb: 1,
             width: "100%",
             maxWidth: 720,

@@ -22,7 +22,8 @@ type Channel =
   | "PLAYER_REMOTE_SOUNDBOARD_GET_ALL_REQUEST"
   | "PLAYER_REMOTE_SOUNDBOARD_PLAY"
   | "PLAYER_REMOTE_SOUNDBOARD_STOP"
-  | "PLAYER_REMOTE_SOUNDBOARD_PLAYBACK_REQUEST";
+  | "PLAYER_REMOTE_SOUNDBOARD_PLAYBACK_REQUEST"
+  | "PLAYER_COMPACT_MODE_CHANGED";
 
 const validChannels: Channel[] = [
   "PLAYER_REMOTE_PLAYLIST_GET_ALL_REQUEST",
@@ -41,6 +42,7 @@ const validChannels: Channel[] = [
   "PLAYER_REMOTE_SOUNDBOARD_PLAY",
   "PLAYER_REMOTE_SOUNDBOARD_STOP",
   "PLAYER_REMOTE_SOUNDBOARD_PLAYBACK_REQUEST",
+  "PLAYER_COMPACT_MODE_CHANGED",
 ];
 
 type ChannelArguments = {
@@ -60,6 +62,7 @@ type ChannelArguments = {
   PLAYER_REMOTE_SOUNDBOARD_PLAY: [string];
   PLAYER_REMOTE_SOUNDBOARD_STOP: [string];
   PLAYER_REMOTE_SOUNDBOARD_PLAYBACK_REQUEST: [];
+  PLAYER_COMPACT_MODE_CHANGED: [boolean];
 };
 
 const api = {
@@ -94,6 +97,9 @@ const api = {
   },
   setDiscordNowPlaying: (title?: string) => {
     ipcRenderer.send("DISCORD_NOW_PLAYING", title);
+  },
+  getCompactMode: (): boolean => {
+    return ipcRenderer.sendSync("PLAYER_GET_COMPACT_MODE");
   },
   getPathForFile: (file: File) => {
     return webUtils.getPathForFile(file);

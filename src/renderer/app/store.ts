@@ -18,6 +18,7 @@ import {
   PURGE,
   REGISTER,
 } from "redux-persist";
+import type { MigrationManifest, PersistedState } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 
 const rootReducer = combineReducers({
@@ -30,8 +31,13 @@ const rootReducer = combineReducers({
   input: inputReducer,
 });
 
-const migrations: any = {
-  2: (state: RootState): RootState => {
+type PersistedRootState = ReturnType<typeof rootReducer> &
+  NonNullable<PersistedState>;
+
+const migrations: MigrationManifest = {
+  2: (persistedState) => {
+    if (!persistedState) return persistedState;
+    const state = persistedState as PersistedRootState;
     return {
       ...state,
       settings: {
@@ -47,7 +53,9 @@ const migrations: any = {
     };
   },
   // v1.1 - Add performance mode
-  3: (state: RootState): RootState => {
+  3: (persistedState) => {
+    if (!persistedState) return persistedState;
+    const state = persistedState as PersistedRootState;
     return {
       ...state,
       settings: {
@@ -56,11 +64,36 @@ const migrations: any = {
       },
     };
   },
+  // Add the Discord Now Playing preference and collapsible sidebar
+  5: (persistedState) => {
+    if (!persistedState) return persistedState;
+    const state = persistedState as PersistedRootState;
+    return {
+      ...state,
+      settings: {
+        ...state.settings,
+        discordNowPlayingEnabled: true,
+        sidebarOpen: true,
+      },
+    };
+  },
+  // Add the compact display preference
+  6: (persistedState) => {
+    if (!persistedState) return persistedState;
+    const state = persistedState as PersistedRootState;
+    return {
+      ...state,
+      settings: {
+        ...state.settings,
+        compactMode: false,
+      },
+    };
+  },
 };
 
 const persistConfig = {
   key: "root",
-  version: 4,
+  version: 6,
   storage,
   whitelist: ["bookmarks", "settings"],
   migrate: createMigrate(migrations, { debug: false }),

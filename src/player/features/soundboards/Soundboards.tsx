@@ -41,6 +41,7 @@ import {
   addSounds,
   moveSoundboard,
 } from "./soundboardsSlice";
+import { useCompactMode, useDisplayDensity } from "../../common/CompactMode";
 
 const WallPaper = styled("div")({
   position: "absolute",
@@ -63,6 +64,8 @@ export function Soundboards({ onPlay }: SoundboardProps) {
   const soundboards = useSelector(
     (state: RootState) => state.soundboards.soundboards,
   );
+  const compact = useCompactMode();
+  const density = useDisplayDensity();
 
   const pointerSensor = useSensor(PointerSensor, {
     activationConstraint: { distance: 10 },
@@ -138,7 +141,7 @@ export function Soundboards({ onPlay }: SoundboardProps) {
         {...containerListeners}
       >
         <Stack
-          p={4}
+          p={density.pageHeaderPadding}
           direction="row"
           justifyContent="space-between"
           alignItems="center"
@@ -146,7 +149,7 @@ export function Soundboards({ onPlay }: SoundboardProps) {
           <IconButton onClick={() => navigate(-1)} sx={{ mr: "40px" }}>
             <Back />
           </IconButton>
-          <Typography variant="h3" noWrap>
+          <Typography variant={compact ? "h4" : "h3"} noWrap>
             Soundboards
           </Typography>
           <Tooltip title="Add Soundboard">
@@ -157,11 +160,15 @@ export function Soundboards({ onPlay }: SoundboardProps) {
         </Stack>
         <Grid
           container
-          spacing={2}
-          columns={{ xs: 4, sm: 9, md: 12 }}
+          spacing={density.gridSpacing}
+          columns={
+            compact
+              ? { xs: 4, sm: 12, md: 15, lg: 18 }
+              : { xs: 4, sm: 9, md: 12 }
+          }
           sx={{
-            px: 2,
-            pb: "248px",
+            px: density.pageHorizontalPadding,
+            pb: `${density.contentClearance}px`,
             overflowY: "auto",
             maskImage:
               "linear-gradient(to bottom, transparent, black 16px, black calc(100% - 16px), transparent)",
@@ -177,7 +184,14 @@ export function Soundboards({ onPlay }: SoundboardProps) {
           >
             <SortableContext items={items} strategy={rectSortingStrategy}>
               {items.map((soundboard) => (
-                <Grid item xs={2} sm={3} md={3} key={soundboard.id}>
+                <Grid
+                  item
+                  xs={2}
+                  sm={3}
+                  md={3}
+                  lg={compact ? 3 : undefined}
+                  key={soundboard.id}
+                >
                   <SortableItem id={soundboard.id}>
                     <SoundboardItem
                       soundboard={soundboard}

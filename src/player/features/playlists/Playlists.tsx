@@ -36,6 +36,7 @@ import { FileDropError } from "../../common/FileDropError";
 import { getRandomBackground } from "../../backgrounds";
 import { useHideScrollbar } from "../../../renderer/common/useHideScrollbar";
 import { useNavigate } from "react-router-dom";
+import { useCompactMode, useDisplayDensity } from "../../common/CompactMode";
 
 const WallPaper = styled("div")({
   position: "absolute",
@@ -56,6 +57,8 @@ export function Playlists({ onPlay }: PlaylistsProps) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const playlists = useSelector((state: RootState) => state.playlists);
+  const compact = useCompactMode();
+  const density = useDisplayDensity();
 
   const pointerSensor = useSensor(PointerSensor, {
     activationConstraint: { distance: 10 },
@@ -122,7 +125,7 @@ export function Playlists({ onPlay }: PlaylistsProps) {
         {...containerListeners}
       >
         <Stack
-          p={4}
+          p={density.pageHeaderPadding}
           direction="row"
           justifyContent="space-between"
           alignItems="center"
@@ -130,7 +133,7 @@ export function Playlists({ onPlay }: PlaylistsProps) {
           <IconButton onClick={() => navigate(-1)} sx={{ mr: "40px" }}>
             <Back />
           </IconButton>
-          <Typography variant="h3" noWrap>
+          <Typography variant={compact ? "h4" : "h3"} noWrap>
             Playlists
           </Typography>
           <Tooltip title="Add Playlist">
@@ -141,11 +144,15 @@ export function Playlists({ onPlay }: PlaylistsProps) {
         </Stack>
         <Grid
           container
-          spacing={2}
-          columns={{ xs: 4, sm: 9, md: 12 }}
+          spacing={density.gridSpacing}
+          columns={
+            compact
+              ? { xs: 4, sm: 12, md: 15, lg: 18 }
+              : { xs: 4, sm: 9, md: 12 }
+          }
           sx={{
-            px: 2,
-            pb: "248px",
+            px: density.pageHorizontalPadding,
+            pb: `${density.contentClearance}px`,
             overflowY: "auto",
             maskImage:
               "linear-gradient(to bottom, transparent, black 16px, black calc(100% - 16px), transparent)",
@@ -161,7 +168,14 @@ export function Playlists({ onPlay }: PlaylistsProps) {
           >
             <SortableContext items={items} strategy={rectSortingStrategy}>
               {items.map((playlist) => (
-                <Grid item xs={2} sm={3} md={3} key={playlist.id}>
+                <Grid
+                  item
+                  xs={2}
+                  sm={3}
+                  md={3}
+                  lg={compact ? 3 : undefined}
+                  key={playlist.id}
+                >
                   <SortableItem id={playlist.id}>
                     <PlaylistItem
                       playlist={playlist}

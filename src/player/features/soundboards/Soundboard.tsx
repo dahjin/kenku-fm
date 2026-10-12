@@ -25,6 +25,7 @@ import { addSounds, removeSoundboard, Sound } from "./soundboardsSlice";
 import { backgrounds, isBackground } from "../../backgrounds";
 import { useFolderDrop } from "../../common/useFolderDrop";
 import { FileDropError } from "../../common/FileDropError";
+import { useCompactMode, useDisplayDensity } from "../../common/CompactMode";
 
 type SoundboardProps = {
   onPlay: (sound: Sound) => void;
@@ -38,6 +39,8 @@ export function Soundboard({ onPlay, onStop }: SoundboardProps) {
   const soundboard = useSelector(
     (state: RootState) => state.soundboards.soundboards.byId[soundboardId],
   );
+  const compact = useCompactMode();
+  const density = useDisplayDensity();
 
   const [addOpen, setAddOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -125,7 +128,7 @@ export function Soundboard({ onPlay, onStop }: SoundboardProps) {
           }}
         />
         <Stack
-          p={4}
+          p={density.pageHeaderPadding}
           direction="row"
           justifyContent="space-between"
           alignItems="center"
@@ -134,7 +137,12 @@ export function Soundboard({ onPlay, onStop }: SoundboardProps) {
           <IconButton onClick={() => navigate(-1)} sx={{ mr: "40px" }}>
             <Back />
           </IconButton>
-          <Typography sx={{ zIndex: 1 }} variant="h3" noWrap>
+          <Typography
+            sx={{ zIndex: 1 }}
+            variant={compact ? "h4" : "h3"}
+            noWrap
+            title={soundboard.title}
+          >
             {soundboard.title}
           </Typography>
           <Stack direction="row">
