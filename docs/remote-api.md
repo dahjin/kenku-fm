@@ -4,6 +4,12 @@ Kenku FM can run an HTTP server for local automation, Stream Deck actions, and
 custom remote controls. Enable it under **Settings > Remote**. The default base
 URL is `http://127.0.0.1:3333`.
 
+The compatible
+[dahjin/kenku-fm-stream-deck](https://github.com/dahjin/kenku-fm-stream-deck)
+plugin uses this API for scenes, playlist tags, sound groups, library-backed
+selectors, and live button state. It falls back to `/v1` for legacy actions
+when connected to an older Kenku FM release.
+
 The existing `/v1` routes remain available for compatibility. New clients
 should use `/v2`, which adds scenes, playlist tag filters, sound groups, a
 combined runtime state, and live updates. Version 2 never returns local audio

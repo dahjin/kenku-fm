@@ -10,6 +10,8 @@ also appear as the Discord bot's [Now Playing activity](docs/discord-now-playing
 and a [compact display mode](docs/compact-mode.md) fits the library into smaller
 windows. The versioned [Remote API](docs/remote-api.md) exposes scenes, tags,
 sound groups, playback state, and live events to local automation clients.
+The matching [Kenku FM Stream Deck fork](https://github.com/dahjin/kenku-fm-stream-deck)
+supports these versioned Remote API controls.
 
 Kenku FM is a desktop application for Windows, MacOS and Linux designed to be the easiest way to share music in a Discord voice call.
 
@@ -24,7 +26,11 @@ Kenku FM is a desktop application for Windows, MacOS and Linux designed to be th
 
 ## Installing
 
-Prebuilt binaries can be found at [kenku.fm](https://www.kenku.fm) or from the [GitHub releases](https://github.com/owlbear-rodeo/kenku-fm/releases).
+Official prebuilt binaries can be found at [kenku.fm](https://www.kenku.fm).
+Builds of this fork are published on the
+[dahjin/kenku-fm Releases page](https://github.com/dahjin/kenku-fm/releases),
+with development packages available from
+[GitHub Actions](https://github.com/dahjin/kenku-fm/actions/workflows/build-fork.yaml).
 
 ## Docs
 
@@ -36,7 +42,7 @@ Docs on using Kenku FM can be found [here](https://www.kenku.fm/docs).
 2. Electron browser views are used to display external web content or the built in audio player app.
 3. The user creates and provides their own Discord bot token to connect to Discord.
 4. The Electron media capture API is used to capture audio from each browser view. The audio is then mixed using a Web Audio Context and sent to a Discord voice call using [Eris](https://github.com/abalabahaha/eris).
-5. An optional HTTP server allows users to trigger and control the playback of the built in player app. An example of this in action can be seen with our [Stream Deck plugin](https://www.kenku.fm/docs/using-kenku-remote).
+5. An optional HTTP server allows users to trigger and control the playback of the built in player app. The compatible [Stream Deck plugin fork](https://github.com/dahjin/kenku-fm-stream-deck) provides controls for the versioned API; the [Kenku Remote guide](https://www.kenku.fm/docs/using-kenku-remote) covers the original setup.
 6. Enable external inputs to allow mixing in OS audio inputs.
 7. Enable multiple outputs to send your audio to multiple Discord servers at once.
 8. If you plan to use Kenku FM for streaming you can also output to your local machine for capture by a streaming app and a discord call for your players at the same time.
@@ -70,7 +76,8 @@ the archive tool first with `sudo pacman -S zip`.
 
 ### Automated fork builds
 
-GitHub Actions tests the app and builds ZIP packages for Linux x64, Windows x64,
+The [fork build workflow](https://github.com/dahjin/kenku-fm/actions/workflows/build-fork.yaml)
+tests the app and builds ZIP packages for Linux x64, Windows x64,
 macOS Intel, and macOS Apple Silicon on pull requests and pushes to `main` or
 `feature/**` branches. Each package is available from the workflow run's
 **Artifacts** section for 14 days.
@@ -94,7 +101,11 @@ If you wish to add protected media playback support follow the build steps from 
 
 ## Stream Deck
 
-The stream deck plugin can be found [here](https://github.com/owlbear-rodeo/kenku-fm-stream-deck).
+The compatible plugin for this fork is maintained at
+[dahjin/kenku-fm-stream-deck](https://github.com/dahjin/kenku-fm-stream-deck).
+It supports scenes, playlist tags, random sound groups, library selectors, and
+live state from the version 2 Remote API. The original setup guide remains
+available in the [Kenku Remote documentation](https://www.kenku.fm/docs/using-kenku-remote).
 
 ## Protected Media
 
