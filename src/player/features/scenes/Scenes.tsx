@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { shallowEqual, useDispatch, useSelector } from "react-redux";
 import { SceneTabs } from "./SceneTabs";
 import { ImageSelector } from "../../common/ImageSelector";
@@ -28,6 +28,7 @@ import {
   ListItemText,
   Menu,
   MenuItem,
+  Paper,
   Stack,
   TextField,
   Tooltip,
@@ -199,6 +200,8 @@ export function Scenes({
   const [playlistSettingsOpen, setPlaylistSettingsOpen] = useState(false);
   const [trackSettingsId, setTrackSettingsId] = useState<string | null>(null);
   const [soundSettingsId, setSoundSettingsId] = useState<string | null>(null);
+  const stickyHeader = useRef<HTMLDivElement>(null);
+  const [tabHeaderStuck, setTabHeaderStuck] = useState(false);
   const [sceneId, setSceneId] = useState(
     (scenes.byId[params.get("scene")] ? params.get("scene") : undefined) ??
       active?.sceneId ??
@@ -267,6 +270,26 @@ export function Scenes({
     live &&
     (JSON.stringify(active.tab) !== JSON.stringify(tab) ||
       active.sceneTitle !== scene.title);
+
+  useEffect(() => {
+    const header = stickyHeader.current;
+    if (!header) {
+      setTabHeaderStuck(false);
+      return;
+    }
+
+    const updateStickyState = () => {
+      setTabHeaderStuck(header.getBoundingClientRect().top <= 0.5);
+    };
+    updateStickyState();
+    window.addEventListener("scroll", updateStickyState, true);
+    window.addEventListener("resize", updateStickyState);
+    return () => {
+      window.removeEventListener("scroll", updateStickyState, true);
+      window.removeEventListener("resize", updateStickyState);
+    };
+  }, [sceneId, tab?.id]);
+
   function update(changes: Partial<SceneTab>) {
     dispatch(
       saveScene({
@@ -334,7 +357,7 @@ export function Scenes({
         position: "relative",
         zIndex: 0,
         pt: compact ? 1.5 : 3,
-        pb: `${density.contentClearance}px`,
+        pb: `${density.contentClearance + (active ? 64 : 32)}px`,
       }}
     >
       {sceneImage && (
@@ -557,16 +580,22 @@ export function Scenes({
             )}
             {tab && (
               <Stack spacing={2}>
-                <Box
+                <Paper
+                  ref={stickyHeader}
+                  elevation={tabHeaderStuck ? 8 : 0}
                   sx={{
                     position: "sticky",
                     top: 0,
                     zIndex: 2,
-                    bgcolor: "rgba(34, 38, 57, 0.8)",
+                    bgcolor: tabHeaderStuck
+                      ? "rgb(34, 38, 57)"
+                      : "rgba(34, 38, 57, 0.8)",
                     backgroundImage:
                       "linear-gradient(rgba(255, 255, 255, 0.051), rgba(255, 255, 255, 0.051))",
                     border: "1px solid rgba(255, 255, 255, 0.08)",
                     borderRadius: 2,
+                    transition:
+                      "background-color 150ms ease, box-shadow 150ms ease",
                     py: 1,
                     px: 1.5,
                   }}
@@ -624,7 +653,7 @@ export function Scenes({
                           : "Activate"}
                     </Button>
                   </Stack>
-                </Box>
+                </Paper>
                 {missing && (
                   <Alert severity="warning">
                     Some library items were deleted. Remove or replace them in
