@@ -18,6 +18,7 @@ import FormHelperText from "@mui/material/FormHelperText";
 import { useDispatch } from "react-redux";
 import { editSound, Sound } from "./soundboardsSlice";
 import { AudioSelector } from "../../common/AudioSelector";
+import { AudioEffectsControls } from "../../common/AudioEffectsControls";
 
 type SoundSettingsProps = {
   sound: Sound;
@@ -30,11 +31,15 @@ export function SoundSettings({ sound, open, onClose }: SoundSettingsProps) {
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [minimum, setMinimum] = useState("3");
   const [maximum, setMaximum] = useState("8");
+  const [lowPassHz, setLowPassHz] = useState<number | null>(null);
+  const [reverbMix, setReverbMix] = useState(0);
   useEffect(() => {
     if (open) {
       setRepeatEnabled(Boolean(sound.repeatInterval));
       setMinimum(String(sound.repeatInterval?.minSeconds ?? 3));
       setMaximum(String(sound.repeatInterval?.maxSeconds ?? 8));
+      setLowPassHz(sound.lowPassHz ?? null);
+      setReverbMix(sound.reverbMix ?? 0);
     }
   }, [open, sound.id]);
   const interval = { minSeconds: Number(minimum), maxSeconds: Number(maximum) };
@@ -71,6 +76,8 @@ export function SoundSettings({ sound, open, onClose }: SoundSettingsProps) {
       editSound({
         id: sound.id,
         repeatInterval: repeatEnabled ? interval : null,
+        lowPassHz,
+        reverbMix,
       }),
     );
     onClose();
@@ -80,6 +87,8 @@ export function SoundSettings({ sound, open, onClose }: SoundSettingsProps) {
     <Dialog
       open={open}
       onClose={onClose}
+      fullWidth
+      maxWidth="sm"
       // Stop key events from propagating to prevent the sound drag and drop from stealing the space bar
       onKeyDown={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
@@ -188,6 +197,12 @@ export function SoundSettings({ sound, open, onClose }: SoundSettingsProps) {
               </Typography>
             </>
           )}
+          <AudioEffectsControls
+            lowPassHz={lowPassHz}
+            reverbMix={reverbMix}
+            onLowPassChange={setLowPassHz}
+            onReverbChange={setReverbMix}
+          />
         </DialogContent>
         <DialogActions>
           <Button type="submit" disabled={!valid}>

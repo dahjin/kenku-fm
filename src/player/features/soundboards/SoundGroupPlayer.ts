@@ -28,6 +28,8 @@ export class SoundGroupPlayer {
         fadeOut: data.fadeOut,
         loop: false,
         repeatInterval: null,
+        lowPassHz: data.lowPassHz,
+        reverbMix: data.reverbMix,
       }),
     private random = Math.random,
   ) {}
@@ -125,7 +127,10 @@ export class SoundGroupPlayer {
     if (this.waiting && this.intervalKey !== JSON.stringify(group.interval))
       this.wait();
     const sound = this.options.sound(this.currentId);
-    if (this.current && sound) this.current.volume(sound.volume);
+    if (this.current && sound) {
+      this.current.volume(sound.volume);
+      this.current.effects(sound);
+    }
   }
 
   private finish() {

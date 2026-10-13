@@ -10,6 +10,8 @@ export interface Track {
   startSeconds?: number;
   endSeconds?: number | null;
   crossfadeSeconds?: number | null;
+  lowPassHz?: number | null;
+  reverbMix?: number;
 }
 
 export interface Playlist {

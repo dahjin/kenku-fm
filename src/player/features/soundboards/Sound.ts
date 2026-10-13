@@ -1,6 +1,12 @@
 import { Howl } from "howler";
 import { RepeatInterval, RepeatTimer } from "./repeatInterval";
 import { TypedEmitter } from "tiny-typed-emitter";
+import {
+  attachHowlAudioEffects,
+  AudioEffectGraph,
+  AudioEffects,
+  hasAudioEffects,
+} from "../../common/audioEffects";
 
 export interface SoundEvents {
   error: () => void;
@@ -10,7 +16,7 @@ export interface SoundEvents {
   playing: () => void;
 }
 
-type SoundOptions = {
+type SoundOptions = AudioEffects & {
   repeatInterval?: RepeatInterval | null;
   src: string;
   volume: number;
@@ -30,6 +36,9 @@ export class Sound extends TypedEmitter<SoundEvents> {
   private repeatTimer = new RepeatTimer();
   private stopped = false;
   private waiting = false;
+  private activeHowls = new Set<Howl>();
+  private effectGraphs = new Map<Howl, AudioEffectGraph>();
+  private soundIds = new Map<Howl, number>();
   /** Timeout that controls the cross-fade */
   _timeout: NodeJS.Timeout;
   /** Current howl audio playabck for this loop */
@@ -46,7 +55,7 @@ export class Sound extends TypedEmitter<SoundEvents> {
         const crossFade =
           this.options.fadeIn !== 0 && this.options.fadeOut !== 0;
         const howl = new Howl({
-          ...this.options,
+          src: this.options.src,
           loop: crossFade ? false : this.options.loop,
           volume: crossFade ? 0 : this.options.volume,
           autoplay: true,
@@ -63,7 +72,7 @@ export class Sound extends TypedEmitter<SoundEvents> {
               if (this.options.loop) {
                 // Cross fade on loop
                 howl.once("fade", () => {
-                  howl.stop();
+                  this.disposeHowl(howl);
                 });
                 howl.fade(howl.volume(), 0, this.options.fadeOut);
                 createHowlerInstance();
@@ -97,6 +106,19 @@ export class Sound extends TypedEmitter<SoundEvents> {
         if (crossFade) {
           howl.on("play", handleCrossFade);
         }
+        howl.on("play", (soundId) => {
+          if (typeof soundId === "number") {
+            this.soundIds.set(howl, soundId);
+            if (!this.effectGraphs.has(howl)) {
+              const graph = attachHowlAudioEffects(
+                howl,
+                soundId,
+                this.options,
+              );
+              if (graph) this.effectGraphs.set(howl, graph);
+            }
+          }
+        });
         howl.on("play", () => {
           this.waiting = false;
           this.emit("playing");
@@ -112,12 +134,25 @@ export class Sound extends TypedEmitter<SoundEvents> {
           handleError();
         }
 
+        this.activeHowls.add(howl);
         this._howl = howl;
       };
       createHowlerInstance();
     } catch {
       this.emit("error");
     }
+  }
+
+  private disposeHowl(howl: Howl) {
+    this.effectGraphs.get(howl)?.dispose();
+    this.effectGraphs.delete(howl);
+    this.soundIds.delete(howl);
+    this.activeHowls.delete(howl);
+    howl.unload();
+  }
+
+  private disposeAllHowls() {
+    for (const howl of [...this.activeHowls]) this.disposeHowl(howl);
   }
 
   private scheduleRepeat() {
@@ -157,12 +192,12 @@ export class Sound extends TypedEmitter<SoundEvents> {
       }
       if (fadeOut && this._howl.playing() && this.options.fadeOut > 0) {
         this._howl.once("fade", () => {
-          this._howl.unload();
+          this.disposeAllHowls();
           resolve();
         });
         this._howl.fade(this._howl.volume(), 0, this.options.fadeOut);
       } else {
-        this._howl.unload();
+        this.disposeAllHowls();
         resolve();
       }
     });
@@ -183,6 +218,22 @@ export class Sound extends TypedEmitter<SoundEvents> {
   volume(volume: number) {
     this.options.volume = volume;
     this._howl.volume(volume);
+  }
+
+  effects(effects: AudioEffects) {
+    this.options.lowPassHz = effects.lowPassHz;
+    this.options.reverbMix = effects.reverbMix;
+    for (const howl of this.activeHowls) {
+      const graph = this.effectGraphs.get(howl);
+      if (graph) graph.update(effects);
+      else if (hasAudioEffects(effects)) {
+        const soundId = this.soundIds.get(howl);
+        if (soundId !== undefined) {
+          const next = attachHowlAudioEffects(howl, soundId, effects);
+          if (next) this.effectGraphs.set(howl, next);
+        }
+      }
+    }
   }
 
   loop(loop: boolean) {

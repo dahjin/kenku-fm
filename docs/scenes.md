@@ -1,5 +1,11 @@
 # Scenes and tabs
 
+Scene definitions are mirrored under a fork-specific browser-storage key.
+Official Kenku FM releases share the application profile but do not know about
+scenes, so their saved player record can omit that field. The mirror restores
+the fork's scenes the next time it opens without changing the official app's
+data.
+
 Open **Scenes** on Home. Create a scene (for example, Razor Bay), then create or duplicate tabs for Day, Night and Tension.
 
 Choose a scene from the scene list, then select a tab. The editor shows only the ambience and random groups in that tab; use **Add** to search your soundboards for more. Volume sliders adjust the saved mix. Scene and tab menus contain Rename, Duplicate tab, and Delete. On wide windows, music sits beside the sound layers; narrower windows stack the cards.
