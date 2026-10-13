@@ -8,7 +8,22 @@ data.
 
 Open **Scenes** on Home. Create a scene (for example, Razor Bay), then create or duplicate tabs for Day, Night and Tension.
 
+The selected scene artwork fills the editor background using the same gradient
+treatment as playlist and soundboard pages. Navigation, tab controls and mix
+cards use translucent surfaces so the artwork remains visible without reducing
+control or text contrast.
+
 Choose a scene from the scene list, then select a tab. The editor shows only the ambience and random groups in that tab; use **Add** to search your soundboards for more. Volume sliders adjust the saved mix. Scene and tab menus contain Rename, Duplicate tab, and Delete. On wide windows, music sits beside the sound layers; narrower windows stack the cards.
+
+The scene editor also provides the source library controls needed to prepare a
+mix without leaving the page. **Playlist options** edits crossfade and Smart
+Shuffle behavior, and every track matching the tab's tags has a tune icon for
+tags, timing, frequency, low-pass and reverb. Ambience sounds and
+the member sounds in random groups have the same sound options available. The
+controls are available before or after scene activation. Saved filter changes
+to a currently playing track or sound take effect without restarting it.
+Use a track's play button to start it directly with the tab's tags, volume and
+transition without activating the tab's ambience.
 
 Each tab stores:
 

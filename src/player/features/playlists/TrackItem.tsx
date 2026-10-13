@@ -15,7 +15,6 @@ import { Track, removeTrack, Playlist } from "./playlistsSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { TrackSettings } from "./TrackSettings";
 import { RootState } from "../../app/store";
-import { getPlaylistTags } from "./playlistTags";
 import { QuickTagEditor } from "./QuickTagEditor";
 import {
   playPause,
@@ -27,11 +26,16 @@ import { useCompactMode } from "../../common/CompactMode";
 type TrackItemProps = {
   track: Track;
   playlist: Playlist;
+  availableTags: string[];
   onPlay: (id: string) => void;
 };
 
-export function TrackItem({ track, playlist, onPlay }: TrackItemProps) {
-  const tracks = useSelector((state: RootState) => state.playlists.tracks);
+export function TrackItem({
+  track,
+  playlist,
+  availableTags,
+  onPlay,
+}: TrackItemProps) {
   const isCurrentTrack = useSelector(
     (state: RootState) => state.playlistPlayback.track?.id === track.id,
   );
@@ -118,10 +122,7 @@ export function TrackItem({ track, playlist, onPlay }: TrackItemProps) {
               title: track.title,
             }}
           />
-          <QuickTagEditor
-            track={track}
-            availableTags={getPlaylistTags(playlist, tracks)}
-          />
+          <QuickTagEditor track={track} availableTags={availableTags} />
           <IconButton
             aria-label={playing ? "pause" : "play"}
             onClick={handlePlayPause}
@@ -154,7 +155,7 @@ export function TrackItem({ track, playlist, onPlay }: TrackItemProps) {
       </Menu>
       <TrackSettings
         track={track}
-        availableTags={getPlaylistTags(playlist, tracks)}
+        availableTags={availableTags}
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
       />

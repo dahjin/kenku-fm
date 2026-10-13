@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 
-import { useSelector } from "react-redux";
+import { useSelector, useStore } from "react-redux";
 import { RootState } from "../../app/store";
 
 import { Sound } from "./soundboardsSlice";
@@ -12,7 +12,7 @@ type SoundboardRemoteProps = {
 
 export function SoundboardRemote({ onPlay, onStop }: SoundboardRemoteProps) {
   const soundboards = useSelector((state: RootState) => state.soundboards);
-  const playback = useSelector((state: RootState) => state.soundboardPlayback);
+  const store = useStore<RootState>();
 
   useEffect(() => {
     window.player.on("PLAYER_REMOTE_SOUNDBOARD_PLAY", (args) => {
@@ -46,10 +46,11 @@ export function SoundboardRemote({ onPlay, onStop }: SoundboardRemoteProps) {
     return () => {
       window.player.removeAllListeners("PLAYER_REMOTE_SOUNDBOARD_STOP");
     };
-  }, [onPlay, soundboards]);
+  }, [onStop]);
 
   useEffect(() => {
     window.player.on("PLAYER_REMOTE_SOUNDBOARD_PLAYBACK_REQUEST", () => {
+      const playback = store.getState().soundboardPlayback;
       const sounds = Object.values(playback.playback);
       window.player.soundboardPlaybackReply({
         sounds,
@@ -58,20 +59,26 @@ export function SoundboardRemote({ onPlay, onStop }: SoundboardRemoteProps) {
 
     return () => {
       window.player.removeAllListeners(
-        "PLAYER_REMOTE_SOUNDBOARD_PLAYBACK_REQUEST"
+        "PLAYER_REMOTE_SOUNDBOARD_PLAYBACK_REQUEST",
       );
     };
-  }, [playback]);
+  }, [store]);
 
   useEffect(() => {
     window.player.on("PLAYER_REMOTE_SOUNDBOARD_GET_ALL_REQUEST", () => {
       window.player.soundboardGetAllReply({
         soundboards: soundboards.soundboards.allIds.map(
-          (id) => soundboards.soundboards.byId[id]
+          (id) => soundboards.soundboards.byId[id],
         ),
         sounds: Object.values(soundboards.sounds),
       });
     });
+
+    return () => {
+      window.player.removeAllListeners(
+        "PLAYER_REMOTE_SOUNDBOARD_GET_ALL_REQUEST",
+      );
+    };
   }, [soundboards]);
 
   return <></>;

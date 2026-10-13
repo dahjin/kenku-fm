@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { useStore } from "react-redux";
+import { useSelector, useStore } from "react-redux";
 import { RootState } from "../../app/store";
 import {
   playPause,
@@ -14,6 +14,9 @@ import { PlaylistAudio } from "./PlaylistAudio";
 
 export function usePlaylistPlayback(onError: (message: string) => void) {
   const store = useStore<RootState>();
+  const playing = useSelector(
+    (state: RootState) => state.playlistPlayback.playing,
+  );
   const errorRef = useRef(onError);
   errorRef.current = onError;
   const engine = useRef<PlaylistAudio>();
@@ -103,12 +106,12 @@ export function usePlaylistPlayback(onError: (message: string) => void) {
     });
 
   useEffect(() => {
+    if (!playing) return;
     const timer = setInterval(() => engine.current.tick(), 50);
-    return () => {
-      clearInterval(timer);
-      engine.current.dispose();
-    };
-  }, []);
+    return () => clearInterval(timer);
+  }, [playing]);
+
+  useEffect(() => () => engine.current.dispose(), []);
 
   const play = useCallback(
     (track: Track, transitionSeconds?: number) => {
@@ -169,5 +172,6 @@ export function usePlaylistPlayback(onError: (message: string) => void) {
     ),
     mute: useCallback((value: boolean) => engine.current.mute(value), []),
     volume: useCallback((value: number) => engine.current.volume(value), []),
+    effects: useCallback((track: Track) => engine.current.effects(track), []),
   };
 }

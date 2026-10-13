@@ -1,8 +1,12 @@
-import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React, { useMemo, useState } from "react";
+import { shallowEqual, useDispatch, useSelector } from "react-redux";
 import { SceneTabs } from "./SceneTabs";
 import { ImageSelector } from "../../common/ImageSelector";
-import { getRandomBackground } from "../../backgrounds";
+import {
+  backgrounds,
+  getRandomBackground,
+  isBackground,
+} from "../../backgrounds";
 import { Link as RouterLink, useSearchParams } from "react-router-dom";
 import { nanoid } from "@reduxjs/toolkit";
 import {
@@ -33,10 +37,12 @@ import Add from "@mui/icons-material/AddRounded";
 import Back from "@mui/icons-material/ChevronLeftRounded";
 import More from "@mui/icons-material/MoreHorizRounded";
 import Play from "@mui/icons-material/PlayArrowRounded";
+import Pause from "@mui/icons-material/PauseRounded";
 import Music from "@mui/icons-material/MusicNoteRounded";
 import Ambience from "@mui/icons-material/WavesRounded";
 import Random from "@mui/icons-material/ShuffleRounded";
 import Close from "@mui/icons-material/CloseRounded";
+import Tune from "@mui/icons-material/TuneRounded";
 import type { RootState } from "../../app/store";
 import {
   activateScene,
@@ -47,7 +53,16 @@ import {
   stopScene,
 } from "./scenesSlice";
 import { TagFilters } from "../playlists/TagFilters";
-import { getFilteredTracks } from "../playlists/playlistTags";
+import { getFilteredTracks, getPlaylistTags } from "../playlists/playlistTags";
+import { PlaylistSettings } from "../playlists/PlaylistSettings";
+import { TrackSettings } from "../playlists/TrackSettings";
+import { editPlaylist, type Track } from "../playlists/playlistsSlice";
+import {
+  adjustVolume,
+  playPause,
+  startQueue,
+} from "../playlists/playlistPlaybackSlice";
+import { SoundSettings } from "../soundboards/SoundSettings";
 import { validRepeatInterval } from "../soundboards/repeatInterval";
 import { LayerPicker, SceneVolume } from "./SceneEditorControls";
 import { useCompactMode, useDisplayDensity } from "../../common/CompactMode";
@@ -61,16 +76,26 @@ function Section({
   title,
   count,
   onAdd,
+  action,
   children,
 }: {
   icon: React.ReactNode;
   title: string;
   count?: number;
   onAdd?: () => void;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <Card variant="outlined" sx={{ borderColor: "divider" }}>
+    <Card
+      variant="outlined"
+      sx={{
+        borderColor: "rgba(255, 255, 255, 0.08)",
+        bgcolor: "rgba(34, 38, 57, 0.8)",
+        backgroundImage:
+          "linear-gradient(rgba(255, 255, 255, 0.051), rgba(255, 255, 255, 0.051))",
+      }}
+    >
       <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
           <Box sx={{ display: "flex", color: "primary.main" }}>{icon}</Box>
@@ -84,6 +109,7 @@ function Section({
               aria-label={`${count} ${title.toLowerCase()}`}
             />
           )}
+          {action}
           {onAdd && (
             <Button
               size="small"
@@ -116,16 +142,63 @@ function RemoveLayer({
     </Tooltip>
   );
 }
-export function Scenes() {
+
+function PlayingIndicator({ title }: { title: string }) {
+  return (
+    <Tooltip title="Playing">
+      <Box
+        component="span"
+        role="status"
+        aria-label={`${title} is playing`}
+        sx={{
+          width: 9,
+          height: 9,
+          borderRadius: "50%",
+          bgcolor: "success.main",
+          flexShrink: 0,
+        }}
+      />
+    </Tooltip>
+  );
+}
+
+export function Scenes({
+  onPlay,
+}: {
+  onPlay: (track: Track, transitionSeconds?: number) => void;
+}) {
   const dispatch = useDispatch();
   const compact = useCompactMode();
   const density = useDisplayDensity();
   const scenes = useSelector((state: RootState) => state.scenes);
   const active = useSelector((state: RootState) => state.scenePlayback.active);
   const playlists = useSelector((state: RootState) => state.playlists);
+  const playingTrackId = useSelector(
+    (state: RootState) => state.playlistPlayback.track?.id,
+  );
+  const playingPlaylistId = useSelector(
+    (state: RootState) => state.playlistPlayback.queue?.playlistId,
+  );
+  const playlistPlaying = useSelector(
+    (state: RootState) => state.playlistPlayback.playing,
+  );
   const soundboards = useSelector((state: RootState) => state.soundboards);
+  const playingSoundIds = useSelector(
+    (state: RootState) => Object.keys(state.soundboardPlayback.playback),
+    shallowEqual,
+  );
+  const playingGroups = useSelector(
+    (state: RootState) => state.soundboardPlayback.groups,
+  );
+  const playingSounds = useMemo(
+    () => new Set(playingSoundIds),
+    [playingSoundIds],
+  );
   const [params] = useSearchParams();
   const [artworkOpen, setArtworkOpen] = useState(false);
+  const [playlistSettingsOpen, setPlaylistSettingsOpen] = useState(false);
+  const [trackSettingsId, setTrackSettingsId] = useState<string | null>(null);
+  const [soundSettingsId, setSoundSettingsId] = useState<string | null>(null);
   const [sceneId, setSceneId] = useState(
     (scenes.byId[params.get("scene")] ? params.get("scene") : undefined) ??
       active?.sceneId ??
@@ -144,6 +217,11 @@ export function Scenes() {
     value: string;
   } | null>(null);
   const scene = scenes.byId[sceneId];
+  const sceneImage = scene?.background
+    ? isBackground(scene.background)
+      ? backgrounds[scene.background]
+      : scene.background
+    : undefined;
   const tab = scene?.tabs.find((item) => item.id === tabId) ?? scene?.tabs[0];
   const groups = Object.values(soundboards.soundboards.byId).flatMap((board) =>
     (board.groups ?? []).map((group) => ({ ...group, board: board.title })),
@@ -159,12 +237,22 @@ export function Scenes() {
         })),
   );
   const playlist = tab?.music && playlists.playlists.byId[tab.music.playlistId];
-  const matches = playlist
+  const matchingTrackIds = playlist
     ? getFilteredTracks(
         { ...playlist, tagFilter: tab.music.tags },
         playlists.tracks,
-      ).length
-    : 0;
+      )
+    : [];
+  const matches = matchingTrackIds.length;
+  const availableTrackTags = playlist
+    ? getPlaylistTags(playlist, playlists.tracks)
+    : [];
+  const trackSettings = trackSettingsId
+    ? playlists.tracks[trackSettingsId]
+    : undefined;
+  const soundSettings = soundSettingsId
+    ? soundboards.sounds[soundSettingsId]
+    : undefined;
   const missing =
     tab &&
     ((tab.music && !playlist) ||
@@ -243,10 +331,26 @@ export function Scenes() {
     <Container
       maxWidth="lg"
       sx={{
+        position: "relative",
+        zIndex: 0,
         pt: compact ? 1.5 : 3,
         pb: `${density.contentClearance}px`,
       }}
     >
+      {sceneImage && (
+        <Box
+          aria-hidden
+          sx={{
+            position: "fixed",
+            inset: 0,
+            zIndex: -1,
+            pointerEvents: "none",
+            backgroundImage: `linear-gradient(0deg, #ffffff44 30%, #00000088 100%), url("${sceneImage}")`,
+            backgroundPosition: "center",
+            backgroundSize: "cover",
+          }}
+        />
+      )}
       <Stack
         direction="row"
         alignItems="center"
@@ -283,7 +387,16 @@ export function Scenes() {
           <Box
             component="nav"
             aria-label="Scene library"
-            sx={{ position: { md: "sticky" }, top: 16 }}
+            sx={{
+              position: { md: "sticky" },
+              top: 16,
+              p: 1,
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              borderRadius: 2,
+              bgcolor: "rgba(34, 38, 57, 0.8)",
+              backgroundImage:
+                "linear-gradient(rgba(255, 255, 255, 0.051), rgba(255, 255, 255, 0.051))",
+            }}
           >
             <Typography
               variant="overline"
@@ -348,6 +461,10 @@ export function Scenes() {
               textAlign: "center",
               py: 7,
               px: 3,
+              borderColor: "rgba(255, 255, 255, 0.08)",
+              bgcolor: "rgba(34, 38, 57, 0.8)",
+              backgroundImage:
+                "linear-gradient(rgba(255, 255, 255, 0.051), rgba(255, 255, 255, 0.051))",
             }}
           >
             <Ambience sx={{ fontSize: 40, color: "primary.main", mb: 1 }} />
@@ -401,7 +518,15 @@ export function Scenes() {
             <Stack
               direction="row"
               alignItems="center"
-              sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}
+              sx={{
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: 2,
+                mb: 2,
+                px: 1,
+                bgcolor: "rgba(34, 38, 57, 0.8)",
+                backgroundImage:
+                  "linear-gradient(rgba(255, 255, 255, 0.051), rgba(255, 255, 255, 0.051))",
+              }}
             >
               <SceneTabs
                 tabs={scene.tabs}
@@ -437,8 +562,13 @@ export function Scenes() {
                     position: "sticky",
                     top: 0,
                     zIndex: 2,
-                    bgcolor: "background.default",
+                    bgcolor: "rgba(34, 38, 57, 0.8)",
+                    backgroundImage:
+                      "linear-gradient(rgba(255, 255, 255, 0.051), rgba(255, 255, 255, 0.051))",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: 2,
                     py: 1,
+                    px: 1.5,
                   }}
                 >
                   <Stack
@@ -512,7 +642,14 @@ export function Scenes() {
                   alignItems="center"
                   useFlexGap
                   flexWrap="wrap"
-                  sx={{ pb: 1 }}
+                  sx={{
+                    p: 1.5,
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: 2,
+                    bgcolor: "rgba(34, 38, 57, 0.8)",
+                    backgroundImage:
+                      "linear-gradient(rgba(255, 255, 255, 0.051), rgba(255, 255, 255, 0.051))",
+                  }}
                 >
                   <TextField
                     size="small"
@@ -542,7 +679,7 @@ export function Scenes() {
                   />
                   <Typography
                     variant="caption"
-                    color="text.secondary"
+                    color="text.primary"
                     sx={{ flex: 1, minWidth: 160 }}
                   >
                     Music crossfades. Removed ambience fades out.
@@ -561,14 +698,32 @@ export function Scenes() {
                     alignItems: "start",
                   }}
                 >
-                  <Section title="Music" icon={<Music />}>
+                  <Section
+                    title="Music"
+                    icon={<Music />}
+                    action={
+                      playlist ? (
+                        <Tooltip title="Playlist options">
+                          <IconButton
+                            size="small"
+                            aria-label="Playlist options"
+                            onClick={() => setPlaylistSettingsOpen(true)}
+                          >
+                            <Tune fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      ) : undefined
+                    }
+                  >
                     <Stack spacing={2}>
                       <TextField
                         select
                         size="small"
                         label="Playlist"
                         value={tab.music?.playlistId ?? ""}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          setPlaylistSettingsOpen(false);
+                          setTrackSettingsId(null);
                           update({
                             music: e.target.value
                               ? {
@@ -577,8 +732,8 @@ export function Scenes() {
                                   volume: tab.music?.volume ?? 1,
                                 }
                               : undefined,
-                          })
-                        }
+                          });
+                        }}
                       >
                         <MenuItem value="">No music</MenuItem>
                         {tab.music && !playlist && (
@@ -620,6 +775,106 @@ export function Scenes() {
                               ? `${matches} matching ${matches === 1 ? "track" : "tracks"} · all selected tags must match`
                               : "No matching tracks. Activating this tab will fade music to silence."}
                           </Typography>
+                          {playlist && matchingTrackIds.length > 0 && (
+                            <Box>
+                              <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
+                                Tracks available to this tab
+                              </Typography>
+                              <Stack
+                                spacing={0.5}
+                                sx={{ maxHeight: 220, overflowY: "auto" }}
+                              >
+                                {matchingTrackIds.map((id) => {
+                                  const track = playlists.tracks[id];
+                                  const playing =
+                                    playingTrackId === id &&
+                                    playingPlaylistId === playlist.id &&
+                                    playlistPlaying;
+                                  return (
+                                    <Stack
+                                      key={id}
+                                      direction="row"
+                                      alignItems="center"
+                                      spacing={1}
+                                      sx={{ minWidth: 0 }}
+                                    >
+                                      <Typography
+                                        variant="body2"
+                                        noWrap
+                                        title={track.title}
+                                        sx={{ flex: 1, minWidth: 0 }}
+                                      >
+                                        {track.title}
+                                      </Typography>
+                                      {playing && (
+                                        <PlayingIndicator title={track.title} />
+                                      )}
+                                      <Tooltip
+                                        title={
+                                          playing
+                                            ? `Pause ${track.title}`
+                                            : `Play ${track.title}`
+                                        }
+                                      >
+                                        <IconButton
+                                          size="small"
+                                          aria-label={`${playing ? "Pause" : "Play"} ${track.title}`}
+                                          onClick={() => {
+                                            if (
+                                              playingTrackId === id &&
+                                              playingPlaylistId === playlist.id
+                                            ) {
+                                              dispatch(
+                                                playPause(!playlistPlaying),
+                                              );
+                                              return;
+                                            }
+                                            dispatch(
+                                              editPlaylist({
+                                                id: playlist.id,
+                                                tagFilter: tab.music.tags,
+                                              }),
+                                            );
+                                            dispatch(
+                                              adjustVolume(tab.music.volume),
+                                            );
+                                            dispatch(
+                                              startQueue({
+                                                tracks: [...playlist.tracks],
+                                                trackId: id,
+                                                playlistId: playlist.id,
+                                              }),
+                                            );
+                                            onPlay(
+                                              track,
+                                              tab.transitionSeconds,
+                                            );
+                                          }}
+                                        >
+                                          {playing ? (
+                                            <Pause fontSize="small" />
+                                          ) : (
+                                            <Play fontSize="small" />
+                                          )}
+                                        </IconButton>
+                                      </Tooltip>
+                                      <Tooltip
+                                        title={`Options for ${track.title}`}
+                                      >
+                                        <IconButton
+                                          size="small"
+                                          aria-label={`Options for ${track.title}`}
+                                          onClick={() => setTrackSettingsId(id)}
+                                        >
+                                          <Tune fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
+                                    </Stack>
+                                  );
+                                })}
+                              </Stack>
+                            </Box>
+                          )}
                         </>
                       ) : (
                         <Typography variant="body2" color="text.secondary">
@@ -682,6 +937,21 @@ export function Scenes() {
                                       {source ? " · loops continuously" : ""}
                                     </Typography>
                                   </Box>
+                                  {source &&
+                                    playingSounds.has(selected.soundId) && (
+                                      <PlayingIndicator title={title} />
+                                    )}
+                                  {source && (
+                                    <Button
+                                      size="small"
+                                      startIcon={<Tune />}
+                                      onClick={() =>
+                                        setSoundSettingsId(selected.soundId)
+                                      }
+                                    >
+                                      Options
+                                    </Button>
+                                  )}
                                   <RemoveLayer
                                     title={title}
                                     onClick={() =>
@@ -799,6 +1069,58 @@ export function Scenes() {
                                         updateGroup({ volume })
                                       }
                                     />
+                                    <Box>
+                                      <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                        display="block"
+                                        sx={{ mb: 0.5 }}
+                                      >
+                                        Member sound options
+                                      </Typography>
+                                      <Stack
+                                        direction="row"
+                                        spacing={0.5}
+                                        useFlexGap
+                                        flexWrap="wrap"
+                                        sx={{
+                                          maxHeight: 112,
+                                          overflowY: "auto",
+                                        }}
+                                      >
+                                        {group.soundIds
+                                          .filter(
+                                            (id) => soundboards.sounds[id],
+                                          )
+                                          .map((id) => {
+                                            const member =
+                                              soundboards.sounds[id];
+                                            const playing =
+                                              playingGroups[group.id]
+                                                ?.soundId === id;
+                                            return (
+                                              <Button
+                                                key={id}
+                                                size="small"
+                                                variant="text"
+                                                startIcon={<Tune />}
+                                                endIcon={
+                                                  playing ? (
+                                                    <PlayingIndicator
+                                                      title={member.title}
+                                                    />
+                                                  ) : undefined
+                                                }
+                                                onClick={() =>
+                                                  setSoundSettingsId(id)
+                                                }
+                                              >
+                                                {member.title}
+                                              </Button>
+                                            );
+                                          })}
+                                      </Stack>
+                                    </Box>
                                     <Stack
                                       direction="row"
                                       spacing={1}
@@ -889,6 +1211,28 @@ export function Scenes() {
           </Box>
         )}
       </Box>
+      {playlist && (
+        <PlaylistSettings
+          playlist={playlist}
+          open={playlistSettingsOpen}
+          onClose={() => setPlaylistSettingsOpen(false)}
+        />
+      )}
+      {trackSettings && (
+        <TrackSettings
+          track={trackSettings}
+          availableTags={availableTrackTags}
+          open
+          onClose={() => setTrackSettingsId(null)}
+        />
+      )}
+      {soundSettings && (
+        <SoundSettings
+          sound={soundSettings}
+          open
+          onClose={() => setSoundSettingsId(null)}
+        />
+      )}
       <Dialog
         open={artworkOpen}
         onClose={() => setArtworkOpen(false)}

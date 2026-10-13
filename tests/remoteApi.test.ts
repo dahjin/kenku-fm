@@ -4,7 +4,10 @@ import { get as httpGet, ServerResponse } from "node:http";
 import Fastify from "fastify";
 import type { RootState } from "../src/player/app/store";
 import type { PlayerManager } from "../src/main/managers/PlayerManager";
-import { createRemoteSnapshot } from "../src/player/remote/remoteSnapshot";
+import {
+  createRemoteSnapshot,
+  createRemoteSnapshotUpdate,
+} from "../src/player/remote/remoteSnapshot";
 import { v2 } from "../src/main/remote/routes/v2";
 import { REMOTE_API_VERSION, RemoteSnapshot } from "../src/types/remote";
 
@@ -185,6 +188,39 @@ test("v2 snapshot exposes library and runtime features without local paths", () 
   assert.equal(json.includes("/private/"), false);
   assert.equal(json.includes('"url"'), false);
   assert.equal(json.includes('"background"'), false);
+});
+
+test("playback progress snapshots reuse the unchanged remote library", () => {
+  const state = sourceState();
+  const first = createRemoteSnapshot(state);
+  const next = {
+    ...state,
+    playlistPlayback: {
+      ...state.playlistPlayback,
+      playback: { duration: 90, progress: 13 },
+    },
+  } as RootState;
+  const second = createRemoteSnapshot(next);
+  const update = createRemoteSnapshotUpdate(second, first.library);
+
+  assert.equal(second.library, first.library);
+  assert.equal(second.state.playlist.track?.progress, 13);
+  assert.equal(update.library, undefined);
+  assert.equal(update.state.playlist.track?.progress, 13);
+
+  const changedLibraryState = {
+    ...next,
+    playlists: {
+      ...next.playlists,
+      tracks: {
+        ...next.playlists.tracks,
+        "track-1": { ...next.playlists.tracks["track-1"], title: "Quiet Inn" },
+      },
+    },
+  } as RootState;
+  const changed = createRemoteSnapshot(changedLibraryState);
+  const changedUpdate = createRemoteSnapshotUpdate(changed, second.library);
+  assert.equal(changedUpdate.library?.tracks[0].title, "Quiet Inn");
 });
 
 test("v2 routes expose state and dispatch validated controls", async () => {

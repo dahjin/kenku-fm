@@ -1,13 +1,17 @@
 import React, { useEffect } from "react";
 import { useDispatch, useStore } from "react-redux";
 import type { RootState } from "../app/store";
+import type { RemoteLibrary } from "../../types/remote";
 import { editPlaylist } from "../features/playlists/playlistsSlice";
 import { activateScene, stopScene } from "../features/scenes/scenesSlice";
 import {
   startGroup,
   stopGroup,
 } from "../features/soundboards/soundboardPlaybackSlice";
-import { createRemoteSnapshot } from "./remoteSnapshot";
+import {
+  createRemoteSnapshot,
+  createRemoteSnapshotUpdate,
+} from "./remoteSnapshot";
 
 type RemoteV2Props = {
   onPlaylistStop: () => void;
@@ -22,11 +26,14 @@ export function RemoteV2({
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let publishedLibrary: RemoteLibrary | undefined;
     const publish = () => {
       timer = undefined;
+      const snapshot = createRemoteSnapshot(store.getState());
       window.player.updateRemoteSnapshot(
-        createRemoteSnapshot(store.getState()),
+        createRemoteSnapshotUpdate(snapshot, publishedLibrary),
       );
+      publishedLibrary = snapshot.library;
     };
     const unsubscribe = store.subscribe(() => {
       // Playback progress can update ten times per second. Two snapshots per

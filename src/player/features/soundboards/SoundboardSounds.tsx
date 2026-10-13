@@ -35,7 +35,7 @@ type SoundboardSoundsProps = {
   onStop: (id: string) => void;
 };
 
-export function SoundboardSounds({
+export const SoundboardSounds = React.memo(function SoundboardSounds({
   soundboard,
   onPlay,
   onStop,
@@ -147,4 +147,4 @@ export function SoundboardSounds({
       </Grid>
     </Box>
   );
-}
+});

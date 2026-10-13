@@ -9,6 +9,10 @@ ends. Both tracks overlap while one fades out and the other fades in. Each overl
 is capped at half the duration of either track. Slow or failed loads can still
 prevent a seamless transition.
 
+To keep first playback responsive, the next track loads only when the current
+track reaches the crossfade window plus five seconds of preparation time.
+Starting a playlist therefore does not immediately load two audio files.
+
 Tag filters, shuffle and repeat determine which track comes next. No next matching
 track means the current track finishes and playback stops. Changes to filters
 invalidate a preloaded track if it is no longer next in the queue. Next/Previous

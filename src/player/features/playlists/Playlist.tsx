@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -49,8 +49,16 @@ export function Playlist({ onPlay }: PlaylistProps) {
   const [addOpen, setAddOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const items = getFilteredTracks(playlist, playlists.tracks).map(
-    (id) => playlists.tracks[id],
+  const items = useMemo(
+    () =>
+      getFilteredTracks(playlist, playlists.tracks).map(
+        (id) => playlists.tracks[id],
+      ),
+    [playlist, playlists.tracks],
+  );
+  const availableTags = useMemo(
+    () => getPlaylistTags(playlist, playlists.tracks),
+    [playlist, playlists.tracks],
   );
 
   const image = isBackground(playlist.background)
@@ -82,14 +90,17 @@ export function Playlist({ onPlay }: PlaylistProps) {
     handleMenuClose();
   }
 
-  function handleTrackPlay(trackId: string) {
-    const track = playlists.tracks[trackId];
-    if (track && items.some((item) => item.id === trackId)) {
-      const tracks = [...playlist.tracks];
-      dispatch(startQueue({ tracks, trackId, playlistId: playlist.id }));
-      onPlay(track);
-    }
-  }
+  const handleTrackPlay = useCallback(
+    (trackId: string) => {
+      const track = playlists.tracks[trackId];
+      if (track && items.some((item) => item.id === trackId)) {
+        const tracks = [...playlist.tracks];
+        dispatch(startQueue({ tracks, trackId, playlistId: playlist.id }));
+        onPlay(track);
+      }
+    },
+    [dispatch, items, onPlay, playlist, playlists.tracks],
+  );
 
   const { dragging, containerListeners, overlayListeners, error, clearError } =
     useFolderDrop((directories) => {
@@ -192,7 +203,7 @@ export function Playlist({ onPlay }: PlaylistProps) {
             {items.length} of {playlist.tracks.length} tracks · Matches all
             selected tags
           </Typography>
-          {!getPlaylistTags(playlist, playlists.tracks).length && (
+          {!availableTags.length && (
             <Typography variant="caption">
               Add tags using a track’s Edit menu to filter here.
             </Typography>
@@ -201,6 +212,7 @@ export function Playlist({ onPlay }: PlaylistProps) {
         <PlaylistTracks
           items={items}
           playlist={playlist}
+          availableTags={availableTags}
           onPlay={handleTrackPlay}
         />
         <Backdrop

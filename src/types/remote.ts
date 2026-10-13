@@ -134,6 +134,12 @@ export interface RemoteSnapshotPayload {
   state: RemoteRuntimeState;
 }
 
+/** Renderer-to-main update; unchanged library data may be omitted. */
+export interface RemoteSnapshotUpdate {
+  library?: RemoteLibrary;
+  state: RemoteRuntimeState;
+}
+
 export interface RemoteSnapshot extends RemoteSnapshotPayload {
   apiVersion: typeof REMOTE_API_VERSION;
   sequence: number;

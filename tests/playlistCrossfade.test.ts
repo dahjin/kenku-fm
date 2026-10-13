@@ -79,10 +79,14 @@ function setup(seconds = 3, length = 100) {
   const started: string[] = [];
   const errors: string[] = [];
   let next: Track | undefined = b;
+  let nextCalls = 0;
   let stops = 0;
   const player = new PlaylistAudio(
     {
-      next: () => next,
+      next: () => {
+        nextCalls++;
+        return next;
+      },
       crossfade: () => seconds,
       onStart: (track) => started.push(track.id),
       onProgress: () => {},
@@ -105,6 +109,7 @@ function setup(seconds = 3, length = 100) {
     next: (track?: Track) => {
       next = track;
     },
+    nextCalls: () => nextCalls,
     stops: () => stops,
   };
 }
@@ -119,6 +124,10 @@ test("crossfade length is bounded by half of each track and disabled for invalid
 
 test("preloads silently and overlaps only during the requested final seconds", () => {
   const f = setup();
+  f.player.tick();
+  assert.equal(f.audio.length, 1);
+  assert.equal(f.nextCalls(), 0);
+  f.audio[0].position = 92;
   f.player.tick();
   assert.equal(f.audio.length, 2);
   f.audio[1].load();
@@ -147,7 +156,9 @@ test("zero crossfade plays the next track only after the current track ends", ()
   f.audio[0].position = 99;
   f.player.tick();
   assert.equal(f.audio.length, 1);
+  assert.equal(f.nextCalls(), 0);
   f.audio[0].end();
+  assert.equal(f.nextCalls(), 1);
   f.audio[1].load();
   assert.equal(f.audio[0].unloaded, true);
   assert.equal(f.audio[1].level, 1);
@@ -156,6 +167,7 @@ test("zero crossfade plays the next track only after the current track ends", ()
 
 test("filter changes discard a preloaded track before it can be played", () => {
   const f = setup();
+  f.audio[0].position = 92;
   f.player.tick();
   f.audio[1].load();
   f.next(c);
@@ -170,12 +182,51 @@ test("filter changes discard a preloaded track before it can be played", () => {
 
 test("audio effect changes replace a preloaded copy of the same track", () => {
   const f = setup();
+  f.audio[0].position = 92;
   f.player.tick();
   f.audio[1].load();
   f.next({ ...b, lowPassHz: 1200, reverbMix: 0.25 });
   f.player.tick();
   assert.equal(f.audio[1].unloaded, true);
   assert.equal(f.audio.length, 3);
+  f.player.dispose();
+});
+
+test("audio effect edits update the playing track without restarting it", () => {
+  const f = setup();
+  const updates: Track[] = [];
+  const current = (
+    f.player as unknown as {
+      current?: {
+        track: Track;
+        effects?: {
+          update: (track: Track) => void;
+          dispose: () => void;
+        };
+      };
+    }
+  ).current;
+  assert.ok(current);
+  current.effects = {
+    update: (track) => updates.push(track),
+    dispose: () => {},
+  };
+  f.audio[0].position = 24;
+  const plays = f.audio[0].plays;
+
+  f.player.effects({ ...a, lowPassHz: 800, reverbMix: 0.4 });
+
+  assert.equal(f.audio[0].plays, plays);
+  assert.equal(f.audio[0].position, 24);
+  assert.equal(current.track.lowPassHz, 800);
+  assert.equal(current.track.reverbMix, 0.4);
+  assert.deepEqual(
+    updates.map(({ lowPassHz, reverbMix }) => ({
+      lowPassHz,
+      reverbMix,
+    })),
+    [{ lowPassHz: 800, reverbMix: 0.4 }],
+  );
   f.player.dispose();
 });
 
@@ -203,6 +254,7 @@ test("empty selection or repeat-off at the last track stops without another trac
 
 test("pause, resume, mute and volume control both sides of the fade", () => {
   const f = setup();
+  f.audio[0].position = 92;
   f.player.tick();
   f.audio[1].load();
   f.audio[0].position = 97;
@@ -272,6 +324,7 @@ test("pause while a requested track loads does not autoplay it afterward", () =>
 
 test("short incoming tracks shorten the overlap", () => {
   const f = setup(10);
+  f.audio[0].position = 85;
   f.player.tick();
   f.audio[1].length = 2;
   f.audio[1].load();
@@ -289,6 +342,7 @@ test("short incoming tracks shorten the overlap", () => {
 
 test("seek ends the old side of an overlap and restores full gain", () => {
   const f = setup();
+  f.audio[0].position = 92;
   f.player.tick();
   f.audio[1].load();
   f.audio[0].position = 97;
@@ -323,6 +377,7 @@ test("rapid manual selections discard obsolete load callbacks", () => {
 
 test("failed preloads leave the current track running and do not retry every tick", () => {
   const f = setup();
+  f.audio[0].position = 92;
   f.player.tick();
   f.audio[1].emit("loaderror");
   f.player.tick();
@@ -336,6 +391,7 @@ test("failed preloads leave the current track running and do not retry every tic
 test("repeat-track can overlap a fresh instance of the same track", () => {
   const f = setup();
   f.next(a);
+  f.audio[0].position = 92;
   f.player.tick();
   f.audio[1].load();
   f.audio[0].position = 97;

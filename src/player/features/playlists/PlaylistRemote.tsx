@@ -29,10 +29,6 @@ export function PlaylistRemote({
   onPrevious,
 }: PlaylistRemoteProps) {
   const playlists = useSelector((state: RootState) => state.playlists);
-  const playback = useSelector((state: RootState) => state.playlistPlayback);
-  const playbackShuffle = useSelector(
-    (state: RootState) => state.playlistPlayback.shuffle,
-  );
   const dispatch = useDispatch();
   const store = useStore<RootState>();
 
@@ -90,10 +86,12 @@ export function PlaylistRemote({
     return () => {
       window.player.removeAllListeners("PLAYER_REMOTE_PLAYLIST_PLAY");
     };
-  }, [onPlay, playlists, playbackShuffle, store]);
+  }, [dispatch, onPlay, playlists, store]);
 
   useEffect(() => {
     window.player.on("PLAYER_REMOTE_PLAYLIST_PLAYBACK_REQUEST", () => {
+      const state = store.getState();
+      const playback = state.playlistPlayback;
       let track = undefined;
       if (playback.track && playback.playback && playback.queue) {
         track = {
@@ -105,7 +103,8 @@ export function PlaylistRemote({
       if (playback.queue?.playlistId) {
         playlist = {
           id: playback.queue.playlistId,
-          title: playlists.playlists.byId[playback.queue.playlistId]?.title,
+          title:
+            state.playlists.playlists.byId[playback.queue.playlistId]?.title,
         };
       }
       window.player.playlistPlaybackReply({
@@ -124,7 +123,7 @@ export function PlaylistRemote({
         "PLAYER_REMOTE_PLAYLIST_PLAYBACK_REQUEST",
       );
     };
-  }, [playback]);
+  }, [store]);
 
   useEffect(() => {
     window.player.on("PLAYER_REMOTE_PLAYLIST_GET_ALL_REQUEST", () => {
@@ -145,13 +144,13 @@ export function PlaylistRemote({
 
   useEffect(() => {
     window.player.on("PLAYER_REMOTE_PLAYLIST_PLAYBACK_PLAY", () => {
-      if (playback.playback) {
+      if (store.getState().playlistPlayback.playback) {
         dispatch(playPause(true));
       }
     });
 
     window.player.on("PLAYER_REMOTE_PLAYLIST_PLAYBACK_PAUSE", () => {
-      if (playback.playback) {
+      if (store.getState().playlistPlayback.playback) {
         dispatch(playPause(false));
       }
     });
@@ -160,11 +159,12 @@ export function PlaylistRemote({
       window.player.removeAllListeners("PLAYER_REMOTE_PLAYLIST_PLAYBACK_PLAY");
       window.player.removeAllListeners("PLAYER_REMOTE_PLAYLIST_PLAYBACK_PAUSE");
     };
-  }, [playback]);
+  }, [dispatch, store]);
 
   useEffect(() => {
     window.player.on("PLAYER_REMOTE_PLAYLIST_PLAYBACK_SEEK", (args) => {
       const to = args[0];
+      const playback = store.getState().playlistPlayback;
       if (playback.playback) {
         // Clamp playback and seek
         onSeek(Math.min(Math.max(to, 0), playback.playback.duration));
@@ -174,7 +174,7 @@ export function PlaylistRemote({
     return () => {
       window.player.removeAllListeners("PLAYER_REMOTE_PLAYLIST_PLAYBACK_SEEK");
     };
-  }, [playback, onSeek]);
+  }, [onSeek, store]);
 
   useEffect(() => {
     window.player.on("PLAYER_REMOTE_PLAYLIST_PLAYBACK_MUTE", (args) => {

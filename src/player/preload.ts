@@ -5,7 +5,7 @@ import {
   SoundboardPlaybackReply,
   SoundboardsReply,
 } from "../types/player";
-import { RemoteSnapshotPayload } from "../types/remote";
+import { RemoteSnapshotUpdate } from "../types/remote";
 
 type Channel =
   | "PLAYER_REMOTE_PLAYLIST_GET_ALL_REQUEST"
@@ -117,7 +117,7 @@ const api = {
   soundboardGetAllReply: (soundboards: SoundboardsReply) => {
     ipcRenderer.send("PLAYER_REMOTE_SOUNDBOARD_GET_ALL_REPLY", soundboards);
   },
-  updateRemoteSnapshot: (snapshot: RemoteSnapshotPayload) => {
+  updateRemoteSnapshot: (snapshot: RemoteSnapshotUpdate) => {
     ipcRenderer.send("PLAYER_REMOTE_SNAPSHOT", snapshot);
   },
   setDiscordNowPlaying: (title?: string) => {

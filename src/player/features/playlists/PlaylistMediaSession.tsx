@@ -17,7 +17,10 @@ export function PlaylistMediaSession({
   onPrevious,
   onStop,
 }: PlaylistMediaSessionProps) {
-  const playback = useSelector((state: RootState) => state.playlistPlayback);
+  const track = useSelector((state: RootState) => state.playlistPlayback.track);
+  const playing = useSelector(
+    (state: RootState) => state.playlistPlayback.playing,
+  );
   const dispatch = useDispatch();
 
   // Handle media session actions
@@ -46,23 +49,23 @@ export function PlaylistMediaSession({
 
   // Update media sesssion metadata with current track
   useEffect(() => {
-    if (playback.track) {
+    if (track) {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: playback.track.title,
+        title: track.title,
       });
     } else {
       navigator.mediaSession.metadata = null;
     }
-  }, [playback.track]);
+  }, [track]);
 
   // Update media session playback state
   useEffect(() => {
-    if (playback.playing) {
+    if (playing) {
       navigator.mediaSession.playbackState = "playing";
     } else {
       navigator.mediaSession.playbackState = "paused";
     }
-  }, [playback.playing]);
+  }, [playing]);
 
   return <></>;
 }

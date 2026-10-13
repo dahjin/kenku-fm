@@ -25,6 +25,9 @@ export function useSoundboardPlayback(onError: (message: string) => void) {
   const activeGroups = useSelector(
     (state: RootState) => state.soundboardPlayback.groups,
   );
+  const activeSoundCount = useSelector(
+    (state: RootState) => Object.keys(state.soundboardPlayback.playback).length,
+  );
   const boards = useSelector(
     (state: RootState) => state.soundboards.soundboards,
   );
@@ -146,31 +149,21 @@ export function useSoundboardPlayback(onError: (message: string) => void) {
   );
 
   useEffect(() => {
-    // Update playback
-    let handler = requestAnimationFrame(animatePlayback);
-    let prevTime = performance.now();
-    function animatePlayback(time: number) {
-      handler = requestAnimationFrame(animatePlayback);
-      // Limit update to 1 time per second
-      const delta = time - prevTime;
-      if (delta > 1000) {
-        const updates: { id: string; progress: number }[] = [];
-        for (const id in soundsRef.current) {
-          const sound = soundsRef.current[id];
-          if (sound.playing()) {
-            updates.push({ id, progress: sound.progress() });
-          }
+    if (!activeSoundCount) return;
+    // The UI animates between these readings, so checking once per second is
+    // enough and avoids waking the renderer on every animation frame.
+    const handler = setInterval(() => {
+      const updates: { id: string; progress: number }[] = [];
+      for (const id in soundsRef.current) {
+        const sound = soundsRef.current[id];
+        if (sound.playing()) {
+          updates.push({ id, progress: sound.progress() });
         }
-        if (updates.length > 0) {
-          dispatch(updatePlayback(updates));
-        }
-        prevTime = time;
       }
-    }
-    return () => {
-      cancelAnimationFrame(handler);
-    };
-  }, []);
+      if (updates.length > 0) dispatch(updatePlayback(updates));
+    }, 1000);
+    return () => clearInterval(handler);
+  }, [activeSoundCount, dispatch]);
 
   const seek = useCallback((id: string, to: number) => {
     dispatch(updatePlayback([{ id, progress: to }]));
