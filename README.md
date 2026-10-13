@@ -22,10 +22,6 @@ Kenku FM is a desktop application for Windows, MacOS and Linux designed to be th
 - If you already have a **virtual audio cable** setup use Kenku FM as an easy way to connect to Discord with your existing software.
 
 <p align="center">
-  <img src="./docs/example.png" alt="Kenku FM Interface" width="738">
-</p>
-
-<p align="center">
   <img src="./docs/scenes-example.png" alt="Kenku FM fork library with scene shortcuts and playlist tags" width="738">
 </p>
 
