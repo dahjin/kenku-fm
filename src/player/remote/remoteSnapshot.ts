@@ -3,6 +3,7 @@ import type {
   RemoteLibrary,
   RemoteRuntimeState,
   RemoteSnapshotPayload,
+  RemoteSnapshotUpdate,
 } from "../../types/remote";
 
 function buildLibrary(state: RootState): RemoteLibrary {
@@ -148,10 +149,46 @@ function buildRuntimeState(state: RootState): RemoteRuntimeState {
   };
 }
 
+let cachedLibrary:
+  | {
+      playlists: RootState["playlists"];
+      soundboards: RootState["soundboards"];
+      scenes: RootState["scenes"];
+      value: RemoteLibrary;
+    }
+  | undefined;
+
+function currentLibrary(state: RootState): RemoteLibrary {
+  if (
+    cachedLibrary?.playlists === state.playlists &&
+    cachedLibrary.soundboards === state.soundboards &&
+    cachedLibrary.scenes === state.scenes
+  )
+    return cachedLibrary.value;
+  const value = buildLibrary(state);
+  cachedLibrary = {
+    playlists: state.playlists,
+    soundboards: state.soundboards,
+    scenes: state.scenes,
+    value,
+  };
+  return value;
+}
+
 /** Creates the public remote snapshot without local media or artwork paths. */
 export function createRemoteSnapshot(state: RootState): RemoteSnapshotPayload {
   return {
-    library: buildLibrary(state),
+    library: currentLibrary(state),
     state: buildRuntimeState(state),
   };
+}
+
+/** Omits the library when referentially unchanged since the last publish. */
+export function createRemoteSnapshotUpdate(
+  snapshot: RemoteSnapshotPayload,
+  previousLibrary?: RemoteLibrary,
+): RemoteSnapshotUpdate {
+  return snapshot.library === previousLibrary
+    ? { state: snapshot.state }
+    : snapshot;
 }

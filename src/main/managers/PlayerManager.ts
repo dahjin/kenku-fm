@@ -5,7 +5,7 @@ import { registerRemote } from "../remote";
 import {
   REMOTE_API_VERSION,
   RemoteSnapshot,
-  RemoteSnapshotPayload,
+  RemoteSnapshotUpdate,
 } from "../../types/remote";
 
 declare const PLAYER_WINDOW_WEBPACK_ENTRY: string;
@@ -132,18 +132,24 @@ export class PlayerManager {
 
   _handleRemoteSnapshot = (
     event: Electron.IpcMainEvent,
-    payload: RemoteSnapshotPayload,
+    payload: RemoteSnapshotUpdate,
   ) => {
-    if (event.sender.id !== this.registeredViewId || !payload?.library) return;
-    const libraryJSON = JSON.stringify(payload.library);
-    const libraryChanged = libraryJSON !== this.remoteLibraryJSON;
-    this.remoteLibraryJSON = libraryJSON;
+    if (event.sender.id !== this.registeredViewId || !payload?.state) return;
+    const library = payload.library ?? this.remoteSnapshot?.library;
+    if (!library) return;
+    let libraryChanged = false;
+    if (payload.library) {
+      const libraryJSON = JSON.stringify(payload.library);
+      libraryChanged = libraryJSON !== this.remoteLibraryJSON;
+      this.remoteLibraryJSON = libraryJSON;
+    }
     this.remoteSequence += 1;
     this.remoteSnapshot = {
       apiVersion: REMOTE_API_VERSION,
       sequence: this.remoteSequence,
       updatedAt: new Date().toISOString(),
-      ...payload,
+      library,
+      state: payload.state,
     };
     const metadata = {
       apiVersion: REMOTE_API_VERSION,

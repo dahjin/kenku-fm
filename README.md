@@ -25,6 +25,10 @@ Kenku FM is a desktop application for Windows, MacOS and Linux designed to be th
   <img src="./docs/example.png" alt="Kenku FM Interface" width="738">
 </p>
 
+<p align="center">
+  <img src="./docs/scenes-example.png" alt="Kenku FM fork library with scene shortcuts and playlist tags" width="738">
+</p>
+
 ## Installing
 
 Official prebuilt binaries can be found at [kenku.fm](https://www.kenku.fm).

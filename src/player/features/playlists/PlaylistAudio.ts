@@ -2,6 +2,7 @@ import { Howl, HowlOptions } from "howler";
 import {
   attachHowlAudioEffects,
   AudioEffectGraph,
+  hasAudioEffects,
   sameAudioEffects,
 } from "../../common/audioEffects";
 import { trackBounds } from "./trackMarkers";
@@ -15,6 +16,8 @@ export function crossfadeDuration(
   if (![seconds, outgoing, incoming].every(Number.isFinite)) return 0;
   return Math.max(0, Math.min(seconds, 30, outgoing / 2, incoming / 2));
 }
+
+const CROSSFADE_PRELOAD_HEADROOM_SECONDS = 5;
 
 type Entry = {
   track: Track;
@@ -249,18 +252,30 @@ export class PlaylistAudio {
       return;
     }
     if (this.pending || this.outgoing) return;
+    const requestedCrossfade = this.crossfade();
+    if (requestedCrossfade <= 0) {
+      this.unload(this.upcoming);
+      this.upcoming = undefined;
+      return;
+    }
+    const remaining = this.bounds(current).end - position;
+    if (remaining > requestedCrossfade + CROSSFADE_PRELOAD_HEADROOM_SECONDS) {
+      this.unload(this.upcoming);
+      this.upcoming = undefined;
+      return;
+    }
     const next = this.options.next();
     if (!this.same(this.upcoming, next)) {
       this.unload(this.upcoming);
       this.upcoming = undefined;
     }
-    // Only preload when crossfading is enabled. Re-evaluate filters every tick.
-    if (!next || this.crossfade() <= 0) return;
+    // Re-evaluate filters every tick while a crossfade preload is relevant.
+    if (!next) return;
     if (!this.upcoming && this.failedPreload !== next.id + next.url)
       this.upcoming = this.make(next);
     if (this.upcoming?.loaded) {
       const duration = crossfadeDuration(
-        this.crossfade(),
+        requestedCrossfade,
         this.bounds(current).length,
         this.bounds(this.upcoming).length,
       );
@@ -336,6 +351,24 @@ export class PlaylistAudio {
       this.pending,
     ])
       if (entry) entry.howl.mute(value, entry.soundId);
+  }
+
+  /** Update the active track's filters without restarting or seeking it. */
+  effects(track: Track) {
+    const current = this.current;
+    if (!current || current.track.id !== track.id) return;
+    current.track = {
+      ...current.track,
+      lowPassHz: track.lowPassHz,
+      reverbMix: track.reverbMix,
+    };
+    if (current.effects) current.effects.update(track);
+    else if (current.soundId !== undefined && hasAudioEffects(track))
+      current.effects = attachHowlAudioEffects(
+        current.howl,
+        current.soundId,
+        track,
+      );
   }
 
   retainCurrent() {

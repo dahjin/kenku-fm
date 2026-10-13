@@ -13,7 +13,7 @@ import Stop from "@mui/icons-material/StopRounded";
 import { backgrounds, isBackground } from "../../backgrounds";
 import { LibraryCard } from "../../common/LibraryCard";
 import { Sound, Soundboard } from "./soundboardsSlice";
-import { useDispatch, useSelector } from "react-redux";
+import { shallowEqual, useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../app/store";
 import { startGroup, stopGroup } from "./soundboardPlaybackSlice";
 import { validRepeatInterval } from "./repeatInterval";
@@ -33,7 +33,20 @@ export function SoundboardItem({
   quickControls = false,
 }: SoundboardItemProps) {
   const library = useSelector((state: RootState) => state.soundboards.sounds);
-  const playback = useSelector((state: RootState) => state.soundboardPlayback);
+  const activeSoundIds = useSelector(
+    (state: RootState) =>
+      soundboard.sounds.filter((id) => id in state.soundboardPlayback.playback),
+    shallowEqual,
+  );
+  const activeGroupIds = useSelector(
+    (state: RootState) =>
+      (soundboard.groups ?? [])
+        .map((group) => group.id)
+        .filter((id) => id in state.soundboardPlayback.groups),
+    shallowEqual,
+  );
+  const activeSounds = new Set(activeSoundIds);
+  const activeGroups = new Set(activeGroupIds);
   const dispatch = useDispatch();
   const sounds = soundboard.sounds.filter((id) => library[id]);
   const groups = soundboard.groups ?? [];
@@ -76,7 +89,7 @@ export function SoundboardItem({
             }}
           >
             {sounds.map((id) => {
-              const active = Boolean(playback.playback[id]);
+              const active = activeSounds.has(id);
               return (
                 <Chip
                   key={id}
@@ -93,7 +106,7 @@ export function SoundboardItem({
               );
             })}
             {groups.map((group) => {
-              const active = Boolean(playback.groups[group.id]);
+              const active = activeGroups.has(group.id);
               return (
                 <Chip
                   key={group.id}

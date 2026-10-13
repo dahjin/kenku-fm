@@ -34,12 +34,14 @@ import { useCompactMode, useDisplayDensity } from "../../common/CompactMode";
 type PlaylistTracksProps = {
   items: Track[];
   playlist: Playlist;
+  availableTags: string[];
   onPlay: (id: string) => void;
 };
 
-export function PlaylistTracks({
+export const PlaylistTracks = React.memo(function PlaylistTracks({
   items,
   playlist,
+  availableTags,
   onPlay,
 }: PlaylistTracksProps) {
   const dispatch = useDispatch();
@@ -126,7 +128,12 @@ export function PlaylistTracks({
           <SortableContext items={items} strategy={verticalListSortingStrategy}>
             {items.map((item) => (
               <SortableItem key={item.id} id={item.id}>
-                <TrackItem track={item} playlist={playlist} onPlay={onPlay} />
+                <TrackItem
+                  track={item}
+                  playlist={playlist}
+                  availableTags={availableTags}
+                  onPlay={onPlay}
+                />
               </SortableItem>
             ))}
             <DragOverlay>
@@ -134,6 +141,7 @@ export function PlaylistTracks({
                 <TrackItem
                   track={items.find((track) => track.id === dragId)}
                   playlist={playlist}
+                  availableTags={availableTags}
                   onPlay={onPlay}
                 />
               ) : null}
@@ -143,4 +151,4 @@ export function PlaylistTracks({
       </List>
     </Box>
   );
-}
+});
