@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import PlayArrow from "@mui/icons-material/PlayArrowRounded";
+import Stop from "@mui/icons-material/StopRounded";
 import Switch from "@mui/material/Switch";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Typography from "@mui/material/Typography";
@@ -19,6 +21,7 @@ import { useDispatch } from "react-redux";
 import { editSound, Sound } from "./soundboardsSlice";
 import { AudioSelector } from "../../common/AudioSelector";
 import { AudioEffectsControls } from "../../common/AudioEffectsControls";
+import { SoundFadePreview } from "./SoundFadePreview";
 
 type SoundSettingsProps = {
   sound: Sound;
@@ -33,6 +36,16 @@ export function SoundSettings({ sound, open, onClose }: SoundSettingsProps) {
   const [maximum, setMaximum] = useState("8");
   const [lowPassHz, setLowPassHz] = useState<number | null>(null);
   const [reverbMix, setReverbMix] = useState(0);
+  const [preview, setPreview] = useState<"loading" | "playing" | null>(null);
+  const [previewError, setPreviewError] = useState(false);
+  const previewRef = useRef<SoundFadePreview>();
+
+  const stopPreview = useCallback(() => {
+    previewRef.current?.stop();
+    previewRef.current = undefined;
+    setPreview(null);
+  }, []);
+
   useEffect(() => {
     if (open) {
       setRepeatEnabled(Boolean(sound.repeatInterval));
@@ -40,8 +53,13 @@ export function SoundSettings({ sound, open, onClose }: SoundSettingsProps) {
       setMaximum(String(sound.repeatInterval?.maxSeconds ?? 8));
       setLowPassHz(sound.lowPassHz ?? null);
       setReverbMix(sound.reverbMix ?? 0);
+      setPreviewError(false);
+    } else {
+      stopPreview();
     }
-  }, [open, sound.id]);
+  }, [open, sound.id, stopPreview]);
+
+  useEffect(() => () => previewRef.current?.stop(), []);
   const interval = { minSeconds: Number(minimum), maxSeconds: Number(maximum) };
   const valid =
     !repeatEnabled ||
@@ -80,13 +98,47 @@ export function SoundSettings({ sound, open, onClose }: SoundSettingsProps) {
         reverbMix,
       }),
     );
+    stopPreview();
     onClose();
+  }
+
+  function startPreview() {
+    stopPreview();
+    setPreviewError(false);
+    setPreview("loading");
+    const instance = new SoundFadePreview({
+      src: sound.url,
+      volume: sound.volume,
+      fadeInMilliseconds: sound.fadeIn,
+      fadeOutMilliseconds: sound.fadeOut,
+      lowPassHz,
+      reverbMix,
+      onPlaying: () => setPreview("playing"),
+      onFinish: () => {
+        if (previewRef.current === instance) {
+          previewRef.current = undefined;
+          setPreview(null);
+        }
+      },
+      onError: () => {
+        if (previewRef.current === instance) {
+          previewRef.current = undefined;
+          setPreview(null);
+          setPreviewError(true);
+        }
+      },
+    });
+    previewRef.current = instance;
+    instance.start();
   }
 
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={() => {
+        stopPreview();
+        onClose();
+      }}
       fullWidth
       maxWidth="sm"
       // Stop key events from propagating to prevent the sound drag and drop from stealing the space bar
@@ -158,6 +210,44 @@ export function SoundSettings({ sound, open, onClose }: SoundSettingsProps) {
               />
             </FormControl>
           </Box>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 1,
+              mb: 0.5,
+            }}
+          >
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<PlayArrow />}
+              disabled={preview === "loading"}
+              onClick={startPreview}
+            >
+              Preview loop transition
+            </Button>
+            {preview && (
+              <Button size="small" startIcon={<Stop />} onClick={stopPreview}>
+                Stop
+              </Button>
+            )}
+          </Box>
+          <Typography
+            variant="caption"
+            color={previewError ? "error" : "text.secondary"}
+            display="block"
+            sx={{ mb: 1 }}
+          >
+            {previewError
+              ? "Unable to preview this sound. Check its source and try again."
+              : preview === "loading"
+                ? "Loading preview…"
+                : preview === "playing"
+                  ? "Previewing the end-to-beginning crossfade…"
+                  : "Plays the end, crossfades into the beginning, then continues briefly."}
+          </Typography>
           <FormControlLabel
             control={
               <Switch
