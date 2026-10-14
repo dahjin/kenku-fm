@@ -17,19 +17,31 @@ class FakeHowl extends EventEmitter {
   static instances: FakeHowl[] = [];
   _sounds = [{}];
   plays = 0;
+  lastSprite?: string;
+  position = 0;
   unloaded = false;
   active = true;
-  constructor(public options: { loop: boolean; volume: number }) {
+  constructor(
+    public options: {
+      loop: boolean;
+      volume: number;
+      autoplay?: boolean;
+      sprite?: Record<string, [number, number, boolean]>;
+    },
+  ) {
     super();
     FakeHowl.instances.push(this);
   }
   duration() {
     return 1;
   }
-  play() {
+  play(sprite?: string) {
     this.plays++;
+    this.lastSprite = sprite;
+    if (sprite && this.options.sprite?.[sprite])
+      this.position = this.options.sprite[sprite][0] / 1000;
     this.active = true;
-    this.emit("play");
+    this.emit("play", 1);
   }
   playing() {
     return this.active;
@@ -53,8 +65,9 @@ class FakeHowl extends EventEmitter {
     this.unloaded = true;
     this.active = false;
   }
-  seek() {
-    return 0;
+  seek(to?: number) {
+    if (to !== undefined) this.position = to;
+    return this.position;
   }
 }
 // Load and patch Howler before Sound captures its constructor.
@@ -283,4 +296,30 @@ test("enabling random repeat disables the audio backend loop with one fade disab
   sound.repeat({ minSeconds: 3, maxSeconds: 8 });
   assert.equal(audio.options.loop, false);
   void sound.stop(false);
+});
+
+test("trimmed continuous sounds loop inside their saved playable range", async () => {
+  const sound = new Sound({
+    src: "forge.ogg",
+    volume: 1,
+    loop: true,
+    fadeIn: 0,
+    fadeOut: 0,
+    startSeconds: 0.1,
+    endSeconds: 0.8,
+  });
+  const audio = FakeHowl.instances[FakeHowl.instances.length - 1];
+  let duration = 0;
+  sound.once("load", (value) => (duration = value));
+
+  assert.equal(audio.options.autoplay, false);
+  assert.deepEqual(audio.options.sprite?.trimmed, [100, 700, true]);
+  audio.emit("load");
+  assert.ok(Math.abs(duration - 0.7) < 1e-9);
+  assert.equal(audio.lastSprite, "trimmed");
+
+  sound.seek(0.2);
+  assert.ok(Math.abs(audio.position - 0.3) < 1e-9);
+  assert.ok(Math.abs(sound.progress() - 0.2) < 1e-9);
+  await sound.stop(false);
 });

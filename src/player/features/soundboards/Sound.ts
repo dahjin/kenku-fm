@@ -7,6 +7,7 @@ import {
   AudioEffects,
   hasAudioEffects,
 } from "../../common/audioEffects";
+import { savedSoundBounds, soundBounds } from "./soundTrim";
 
 export interface SoundEvents {
   error: () => void;
@@ -23,6 +24,8 @@ type SoundOptions = AudioEffects & {
   loop: boolean;
   fadeIn: number;
   fadeOut: number;
+  startSeconds?: number;
+  endSeconds?: number | null;
 };
 
 /**
@@ -39,6 +42,9 @@ export class Sound extends TypedEmitter<SoundEvents> {
   private activeHowls = new Set<Howl>();
   private effectGraphs = new Map<Howl, AudioEffectGraph>();
   private soundIds = new Map<Howl, number>();
+  private trimSprites = new Map<Howl, [number, number, boolean]>();
+  private playbackStarts = new Map<Howl, number>();
+  private manualRangeHowls = new Set<Howl>();
   /** Timeout that controls the cross-fade */
   _timeout: NodeJS.Timeout;
   /** Current howl audio playabck for this loop */
@@ -54,11 +60,23 @@ export class Sound extends TypedEmitter<SoundEvents> {
       const createHowlerInstance = () => {
         const crossFade =
           this.options.fadeIn !== 0 && this.options.fadeOut !== 0;
+        const savedBounds = savedSoundBounds(this.options);
+        const trimSprite: [number, number, boolean] | undefined =
+          savedBounds.end !== null
+            ? [
+                Math.round(savedBounds.start * 1000),
+                Math.round(savedBounds.length * 1000),
+                !crossFade && this.options.loop,
+              ]
+            : undefined;
+        const manualRange = savedBounds.start > 0 && !trimSprite && !crossFade;
         const howl = new Howl({
           src: this.options.src,
-          loop: crossFade ? false : this.options.loop,
+          loop:
+            crossFade || trimSprite || manualRange ? false : this.options.loop,
           volume: crossFade ? 0 : this.options.volume,
-          autoplay: true,
+          autoplay: !trimSprite,
+          sprite: trimSprite ? { trimmed: trimSprite } : undefined,
           // Disable html audio when not cross fading to allow for perfect looping
           html5: crossFade,
         });
@@ -81,18 +99,30 @@ export class Sound extends TypedEmitter<SoundEvents> {
                 howl.fade(howl.volume(), 0, this.options.fadeOut);
               }
             },
-            Math.floor(howl.duration() * 1000) - this.options.fadeOut,
+            Math.max(
+              0,
+              Math.floor(
+                trimSprite
+                  ? trimSprite[1]
+                  : soundBounds(this.options, howl.duration()).length * 1000,
+              ) - this.options.fadeOut,
+            ),
           );
         };
 
         const handleLoad = () => {
-          this.emit("load", howl.duration());
+          const bounds = soundBounds(this.options, howl.duration());
+          this.playbackStarts.set(howl, bounds.start);
+          this.emit("load", bounds.length);
+          if (trimSprite && !this.stopped) this.playHowl(howl);
         };
 
         const handleEnd = () => {
           if (this.stopped) return;
           if (this.options.repeatInterval) {
             this.scheduleRepeat();
+          } else if (manualRange && this.options.loop) {
+            this.playHowl(howl);
           } else if (!this.options.loop) {
             this.emit("end");
           }
@@ -103,21 +133,17 @@ export class Sound extends TypedEmitter<SoundEvents> {
           this.emit("error");
         };
 
-        if (crossFade) {
-          howl.on("play", handleCrossFade);
-        }
         howl.on("play", (soundId) => {
           if (typeof soundId === "number") {
             this.soundIds.set(howl, soundId);
+            if (savedBounds.start > 0 && !trimSprite)
+              howl.seek(savedBounds.start, soundId);
             if (!this.effectGraphs.has(howl)) {
-              const graph = attachHowlAudioEffects(
-                howl,
-                soundId,
-                this.options,
-              );
+              const graph = attachHowlAudioEffects(howl, soundId, this.options);
               if (graph) this.effectGraphs.set(howl, graph);
             }
           }
+          if (crossFade) handleCrossFade();
         });
         howl.on("play", () => {
           this.waiting = false;
@@ -135,6 +161,8 @@ export class Sound extends TypedEmitter<SoundEvents> {
         }
 
         this.activeHowls.add(howl);
+        if (trimSprite) this.trimSprites.set(howl, trimSprite);
+        if (manualRange) this.manualRangeHowls.add(howl);
         this._howl = howl;
       };
       createHowlerInstance();
@@ -147,6 +175,9 @@ export class Sound extends TypedEmitter<SoundEvents> {
     this.effectGraphs.get(howl)?.dispose();
     this.effectGraphs.delete(howl);
     this.soundIds.delete(howl);
+    this.trimSprites.delete(howl);
+    this.playbackStarts.delete(howl);
+    this.manualRangeHowls.delete(howl);
     this.activeHowls.delete(howl);
     howl.unload();
   }
@@ -159,9 +190,13 @@ export class Sound extends TypedEmitter<SoundEvents> {
     if (this.stopped || !this.options.repeatInterval) return;
     this.waiting = true;
     this.repeatTimer.start(this.options.repeatInterval, () => {
-      if (!this.stopped) this._howl.play();
+      if (!this.stopped) this.playHowl(this._howl);
     });
     this.emit("waiting");
+  }
+
+  private playHowl(howl: Howl) {
+    return this.trimSprites.has(howl) ? howl.play("trimmed") : howl.play();
   }
 
   repeat(interval: RepeatInterval | null | undefined) {
@@ -176,7 +211,7 @@ export class Sound extends TypedEmitter<SoundEvents> {
     if (this.waiting) {
       this.repeatTimer.cancel();
       if (interval) this.scheduleRepeat();
-      else if (this.options.loop) this._howl.play();
+      else if (this.options.loop) this.playHowl(this._howl);
       else this.emit("end");
     }
   }
@@ -208,11 +243,14 @@ export class Sound extends TypedEmitter<SoundEvents> {
   }
 
   progress() {
-    return this._howl.seek();
+    const position = this._howl.seek();
+    return typeof position === "number"
+      ? Math.max(0, position - (this.playbackStarts.get(this._howl) ?? 0))
+      : 0;
   }
 
   seek(to: number) {
-    this._howl.seek(to);
+    this._howl.seek((this.playbackStarts.get(this._howl) ?? 0) + to);
   }
 
   volume(volume: number) {
@@ -240,7 +278,9 @@ export class Sound extends TypedEmitter<SoundEvents> {
     this.options.loop = loop;
     // Toggle howl loop if cross fade is disabled
     if (this.options.fadeIn === 0 || this.options.fadeOut === 0) {
-      this._howl.loop(loop);
+      const sprite = this.trimSprites.get(this._howl);
+      if (sprite) sprite[2] = loop;
+      this._howl.loop(this.manualRangeHowls.has(this._howl) ? false : loop);
     }
   }
 }

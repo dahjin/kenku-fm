@@ -107,5 +107,39 @@ test("preview plays the outgoing end and incoming beginning together", (t) => {
   assert.equal(finished, 0);
   t.mock.timers.tick(1);
   assert.equal(finished, 1);
-  assert.equal(audio.every((item) => item.unloaded), true);
+  assert.equal(
+    audio.every((item) => item.unloaded),
+    true,
+  );
+});
+
+test("preview uses the trimmed end and restarts from the trimmed beginning", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const audio: FakeHowl[] = [];
+  const preview = new SoundFadePreview(
+    {
+      src: "trimmed-loop.ogg",
+      volume: 1,
+      fadeInMilliseconds: 1000,
+      fadeOutMilliseconds: 3000,
+      startSeconds: 10,
+      endSeconds: 40,
+      onPlaying: () => {},
+      onFinish: () => {},
+      onError: () => assert.fail("preview should not fail"),
+    },
+    (options) => {
+      const instance = new FakeHowl(options);
+      audio.push(instance);
+      return instance as unknown as Howl;
+    },
+  );
+
+  preview.start();
+  audio[0].begin();
+  assert.deepEqual(audio[0].seekCalls, [[35.5, 7]]);
+  t.mock.timers.tick(1500);
+  audio[1].begin(8);
+  assert.deepEqual(audio[1].seekCalls, [[10, 8]]);
+  preview.stop();
 });

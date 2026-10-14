@@ -33,6 +33,8 @@ export interface RemoteSound {
   volume: number;
   fadeIn: number;
   fadeOut: number;
+  startSeconds: number;
+  endSeconds: number | null;
   repeatInterval: RepeatInterval | null;
   lowPassHz: number | null;
   reverbMix: number;

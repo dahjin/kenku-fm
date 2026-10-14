@@ -4,6 +4,7 @@ import {
   AudioEffectGraph,
   AudioEffects,
 } from "../../common/audioEffects";
+import { soundBounds } from "./soundTrim";
 
 const TRANSITION_LEAD_SECONDS = 1.5;
 const MIN_INCOMING_PREVIEW_SECONDS = 2.5;
@@ -37,6 +38,8 @@ type SoundFadePreviewOptions = AudioEffects & {
   volume: number;
   fadeInMilliseconds: number;
   fadeOutMilliseconds: number;
+  startSeconds?: number;
+  endSeconds?: number | null;
   onPlaying: () => void;
   onFinish: () => void;
   onError: () => void;
@@ -73,8 +76,13 @@ export class SoundFadePreview {
             return;
           }
 
-          const window = loopTransitionPreviewWindow(duration, fadeOut);
-          outgoing.seek(window.start, soundId);
+          const bounds = soundBounds(options, duration);
+          if (bounds.length <= 0) {
+            this.fail();
+            return;
+          }
+          const window = loopTransitionPreviewWindow(bounds.length, fadeOut);
+          outgoing.seek(bounds.start + window.start, soundId);
           this.attachEffects(outgoing, soundId);
           this.transitionTimer = setTimeout(() => {
             if (this.disposed) return;
@@ -113,6 +121,12 @@ export class SoundFadePreview {
         volume: fadeIn > 0 ? 0 : options.volume,
         onplay: (soundId) => {
           if (this.disposed) return;
+          const bounds = soundBounds(options, incoming.duration());
+          if (bounds.length <= 0) {
+            this.fail();
+            return;
+          }
+          if (bounds.start > 0) incoming.seek(bounds.start, soundId);
           this.attachEffects(incoming, soundId);
           if (fadeIn > 0) {
             incoming.fade(0, options.volume, fadeIn, soundId);
