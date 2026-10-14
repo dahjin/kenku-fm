@@ -607,7 +607,16 @@ export function Scenes({
                     useFlexGap
                     flexWrap="wrap"
                   >
-                    <Box sx={{ flexGrow: 1, minWidth: 140 }}>
+                    <Box
+                      sx={{
+                        flexGrow: 1,
+                        minWidth: 140,
+                        display: "flex",
+                        alignItems: "baseline",
+                        columnGap: 1,
+                        flexWrap: "wrap",
+                      }}
+                    >
                       <Typography variant="subtitle1" fontWeight={600}>
                         {tab.title || "Untitled tab"}
                       </Typography>
