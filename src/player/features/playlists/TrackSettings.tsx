@@ -25,6 +25,7 @@ import { editTrack, Track } from "./playlistsSlice";
 import { AudioSelector } from "../../common/AudioSelector";
 import { TagInput } from "./TagInput";
 import { AudioEffectsControls } from "../../common/AudioEffectsControls";
+import { settingsAccordionStyles } from "../../common/settingsAccordionStyles";
 
 type TrackSettingsProps = {
   track: Track;
@@ -218,7 +219,11 @@ export function TrackSettings({
             <MenuItem value={1}>Normal · 1×</MenuItem>
             <MenuItem value={4}>Frequent · 4×</MenuItem>
           </TextField>
-          <Accordion disableGutters elevation={0} sx={{ mt: 2 }}>
+          <Accordion
+            disableGutters
+            elevation={0}
+            sx={(theme) => ({ ...settingsAccordionStyles(theme), mt: 2 })}
+          >
             <AccordionSummary expandIcon={<ExpandMore />}>
               <Typography>Timing &amp; crossfade</Typography>
             </AccordionSummary>
