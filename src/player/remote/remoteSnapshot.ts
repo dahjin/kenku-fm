@@ -62,6 +62,8 @@ function buildLibrary(state: RootState): RemoteLibrary {
     volume: sound.volume,
     fadeIn: sound.fadeIn,
     fadeOut: sound.fadeOut,
+    startSeconds: sound.startSeconds ?? 0,
+    endSeconds: sound.endSeconds ?? null,
     repeatInterval: sound.repeatInterval ? { ...sound.repeatInterval } : null,
     lowPassHz: sound.lowPassHz ?? null,
     reverbMix: sound.reverbMix ?? 0,

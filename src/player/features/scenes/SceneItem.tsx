@@ -83,18 +83,45 @@ export function SceneItem({
                     ? "Fix group delays in the scene editor"
                     : changed
                       ? "Activate saved changes"
-                      : `Activate ${tab.title}`
+                      : selected
+                        ? "Live"
+                        : `Activate ${tab.title}`
                 }
               >
                 <span>
                   <Chip
                     size="small"
                     icon={<Play />}
-                    label={`${tab.title || "Untitled tab"}${selected ? (changed ? " · Updated" : " · Live") : ""}`}
+                    label={
+                      <Box
+                        component="span"
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.75,
+                        }}
+                      >
+                        {tab.title || "Untitled tab"}
+                        {selected && changed && " · Updated"}
+                        {selected && !changed && (
+                          <Box
+                            component="span"
+                            aria-label="Live"
+                            sx={{
+                              width: 7,
+                              height: 7,
+                              flexShrink: 0,
+                              borderRadius: "50%",
+                              bgcolor: "success.main",
+                            }}
+                          />
+                        )}
+                      </Box>
+                    }
                     color={selected ? "primary" : "default"}
                     variant={selected ? "filled" : "outlined"}
                     disabled={!valid}
-                    aria-label={`Activate ${scene.title}: ${tab.title}`}
+                    aria-label={`Activate ${scene.title}: ${tab.title}${selected && !changed ? ", live" : ""}`}
                     onClick={() =>
                       dispatch(
                         activateScene({

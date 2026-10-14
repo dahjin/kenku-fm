@@ -95,9 +95,21 @@ export function SoundGroups({ board }: { board: Soundboard }) {
                   mb: 1,
                 }}
               >
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography noWrap>{group.title}</Typography>
-                  <Typography variant="caption">
+                <Box
+                  sx={{
+                    flex: 1,
+                    minWidth: 0,
+                    pl: 1,
+                    display: "flex",
+                    alignItems: "baseline",
+                    columnGap: 1,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Typography noWrap sx={{ maxWidth: "100%" }}>
+                    {group.title}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
                     {members.length} sounds · {group.interval.minSeconds}–
                     {group.interval.maxSeconds}s
                     {state

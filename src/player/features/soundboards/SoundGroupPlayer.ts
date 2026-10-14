@@ -26,6 +26,8 @@ export class SoundGroupPlayer {
         volume: data.volume,
         fadeIn: data.fadeIn,
         fadeOut: data.fadeOut,
+        startSeconds: data.startSeconds,
+        endSeconds: data.endSeconds,
         loop: false,
         repeatInterval: null,
         lowPassHz: data.lowPassHz,

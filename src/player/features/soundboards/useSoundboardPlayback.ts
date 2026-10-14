@@ -105,6 +105,8 @@ export function useSoundboardPlayback(onError: (message: string) => void) {
         volume: sound.volume,
         fadeIn: sound.fadeIn,
         fadeOut: sound.fadeOut,
+        startSeconds: sound.startSeconds,
+        endSeconds: sound.endSeconds,
         loop: sound.loop,
         repeatInterval: sound.repeatInterval,
         lowPassHz: sound.lowPassHz,

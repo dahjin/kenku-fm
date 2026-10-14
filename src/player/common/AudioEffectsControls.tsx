@@ -16,6 +16,7 @@ import {
   MAX_LOW_PASS_HZ,
   MIN_LOW_PASS_HZ,
 } from "./audioEffects";
+import { settingsAccordionStyles } from "./settingsAccordionStyles";
 
 type Props = {
   lowPassHz: number | null;
@@ -57,7 +58,11 @@ export function AudioEffectsControls({
   const reverbPercent = Math.round(clamp(reverbMix, 0, 1) * 100);
 
   return (
-    <Accordion disableGutters elevation={0} sx={{ mt: 1 }}>
+    <Accordion
+      disableGutters
+      elevation={0}
+      sx={(theme) => ({ ...settingsAccordionStyles(theme), mt: 1 })}
+    >
       <AccordionSummary expandIcon={<ExpandMore />}>
         <Typography>Audio filters</Typography>
       </AccordionSummary>

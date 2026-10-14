@@ -11,6 +11,8 @@ export interface Sound {
   volume: number;
   fadeIn: number;
   fadeOut: number;
+  startSeconds?: number;
+  endSeconds?: number | null;
   lowPassHz?: number | null;
   reverbMix?: number;
 }

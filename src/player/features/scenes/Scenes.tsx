@@ -463,12 +463,21 @@ export function Scenes({
                       }}
                     />
                     {isActive && (
-                      <Chip
-                        label="Live"
-                        color="success"
-                        size="small"
-                        variant="outlined"
-                      />
+                      <Tooltip title="Live">
+                        <Box
+                          component="span"
+                          role="status"
+                          aria-label={`${item.title || "Untitled scene"} is live`}
+                          sx={{
+                            width: 9,
+                            height: 9,
+                            mr: 1,
+                            flexShrink: 0,
+                            borderRadius: "50%",
+                            bgcolor: "success.main",
+                          }}
+                        />
+                      </Tooltip>
                     )}
                   </ListItemButton>
                 );
@@ -607,7 +616,16 @@ export function Scenes({
                     useFlexGap
                     flexWrap="wrap"
                   >
-                    <Box sx={{ flexGrow: 1, minWidth: 140 }}>
+                    <Box
+                      sx={{
+                        flexGrow: 1,
+                        minWidth: 140,
+                        display: "flex",
+                        alignItems: "baseline",
+                        columnGap: 1,
+                        flexWrap: "wrap",
+                      }}
+                    >
                       <Typography variant="subtitle1" fontWeight={600}>
                         {tab.title || "Untitled tab"}
                       </Typography>

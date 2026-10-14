@@ -91,6 +91,8 @@ function sourceState(): RootState {
           volume: 0.7,
           fadeIn: 0,
           fadeOut: 0,
+          startSeconds: 0.5,
+          endSeconds: 1.8,
           lowPassHz: 900,
           reverbMix: 0.35,
         },
@@ -180,6 +182,8 @@ test("v2 snapshot exposes library and runtime features without local paths", () 
   assert.equal(value.library.tracks[0].reverbMix, 0.2);
   assert.equal(value.library.sounds[0].lowPassHz, 900);
   assert.equal(value.library.sounds[0].reverbMix, 0.35);
+  assert.equal(value.library.sounds[0].startSeconds, 0.5);
+  assert.equal(value.library.sounds[0].endSeconds, 1.8);
   assert.equal(value.library.scenes[0].tabs[0].id, "tab-1");
   assert.equal(value.state.playlist.track?.progress, 12);
   assert.equal(value.state.scene?.tabTitle, "Night");
